@@ -1,5 +1,5 @@
 ---
-applyTo: ""
+applyTo: '**'
 ---
 
 # Hospital AI Intelligence Platform — Project Context
