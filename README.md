@@ -1,678 +1,467 @@
-# 🏥 Hospital AI Chatbot
+# 🏥 Hospital AI Intelligence Platform
 
-An AI-powered hospital assistant built with **Python, LangChain, Google Gemini, Pinecone, Supabase PostgreSQL, and Streamlit**.
+> **An AI-first hospital analytics platform that connects structured hospital data, unstructured documents, and interactive analytics through a single intelligent interface.**
 
-The chatbot combines two different knowledge sources:
+The **Hospital AI Intelligence Platform** combines **Gemini, LangChain, Supabase PostgreSQL, Pinecone, Pandas, Plotly, and Streamlit** to create an AI system capable of answering questions, retrieving hospital information, analyzing operational data, and generating visual insights.
 
-- 📚 **Pinecone Vector Database** — for searching hospital documents and policies using semantic search.
-- 🗄️ **Supabase PostgreSQL Database** — for structured hospital data such as doctors, departments, schedules, and appointments.
-
-A **LangChain agent powered by Google Gemini** decides which tool to use based on the user's question and combines information from both sources when necessary.
+Instead of building a chatbot and a separate static dashboard, this project puts **AI at the center of the entire experience**.
 
 ---
 
-## ✨ Project Overview
+## ✨ What Can It Do?
 
-The goal of this project is to build a hospital chatbot capable of answering both **document-based** and **database-based** questions.
+The platform can work with two different types of hospital knowledge:
+
+### 📊 Structured Data
+
+Stored in **Supabase PostgreSQL**:
+
+- Patients
+- Doctors
+- Departments
+- Appointments
+- Treatments
+- Billing
+- Other relational hospital data
+
+This allows the AI to answer questions such as:
+
+> "How many appointments did Cardiology have last month?"
+
+> "Which department has the most appointments?"
+
+> "Show the appointment trend over the last six months."
+
+---
+
+### 📄 Unstructured Documents
+
+Stored in **Pinecone** through a RAG pipeline:
+
+- Hospital rules
+- Visiting hours
+- Patient information
+- Department information
+- Hospital policies
+- Other PDF/DOCX documents
+
+This allows questions such as:
+
+> "What are the hospital visiting hours?"
+
+> "What are the patient visiting rules?"
+
+---
+
+### 🤖 AI-Driven Analytics
+
+The AI can combine database queries with analytics and visualization.
 
 For example:
 
-> **"What are the hospital visiting rules?"**
+> **"Analyze appointment cancellations over the last six months and show me the trend."**
 
-The agent searches the hospital documents stored in Pinecone.
+The system can:
 
-> **"Which cardiologists are working tomorrow?"**
-
-The agent queries the relational PostgreSQL database.
-
-> **"Which cardiologists are working tomorrow and what are the visiting rules?"**
-
-The agent can use **both tools**, then combine the results into one understandable response.
-
-### Core architecture
-
-```text
-                         ┌─────────────────────┐
-                         │      Streamlit      │
-                         │     Chat Interface  │
-                         └──────────┬──────────┘
-                                    │
-                                    ▼
-                         ┌─────────────────────┐
-                         │   Gemini +          │
-                         │   LangChain Agent   │
-                         └──────────┬──────────┘
-                                    │
-                    ┌───────────────┴───────────────┐
-                    │                               │
-                    ▼                               ▼
-          ┌──────────────────┐             ┌──────────────────┐
-          │ Vector DB Tool   │             │   SQL DB Tool    │
-          └────────┬─────────┘             └────────┬─────────┘
-                   │                                │
-                   ▼                                ▼
-          ┌──────────────────┐             ┌──────────────────┐
-          │     Pinecone     │             │ Supabase         │
-          │  Vector Database │             │ PostgreSQL       │
-          └────────┬─────────┘             └────────┬─────────┘
-                   │                                │
-                   ▼                                ▼
-          Hospital Documents              Structured Hospital
-                                          Data / Relationships
-```
+1. Query the hospital database
+2. Calculate relevant metrics
+3. Generate a visualization
+4. Explain the results in natural language
+5. Display everything inside the Streamlit interface
 
 ---
 
-# 🧠 Main Features
+## 🧠 Architecture
 
-## 1. AI Hospital Assistant
+The platform follows an **AI-first architecture**:
 
-The chatbot uses **Google Gemini** through LangChain to understand natural-language questions and determine what information is required.
+```text
+                         USER
+                           │
+                           ▼
+                     ┌──────────┐
+                     │ Streamlit│
+                     │  app.py  │
+                     └────┬─────┘
+                          │
+                          ▼
+                    ┌───────────┐
+                    │ Gemini AI │
+                    │ agent.py  │
+                    └─────┬─────┘
+                          │
+             ┌────────────┼────────────┐
+             ▼            ▼            ▼
+          SQL Tool     RAG Tool    Analytics Tool
+             │            │            │
+             ▼            ▼            ▼
+         Supabase      Pinecone    Pandas/Plotly
+         PostgreSQL    Vector DB      Analytics
+             │            │            │
+             └────────────┼────────────┘
+                          ▼
+                    AI Interpretation
+                          │
+                    ┌─────┴─────┐
+                    ▼           ▼
+                 Answer     Visualization
+                    │           │
+                    └─────┬─────┘
+                          ▼
+                    Streamlit UI
+```
 
-The agent can:
-
-- understand natural-language questions;
-- select the appropriate tool;
-- search hospital documentation;
-- query structured hospital data;
-- use both data sources when required;
-- combine retrieved information into a single response.
+The AI agent decides which tools are necessary for each request.
 
 ---
 
-## 2. 📚 Pinecone Vector Database
+## 🔍 Example Interactions
 
-Hospital documents are converted into searchable vector representations.
+| User request | System |
+|---|---|
+| "What are the visiting hours?" | Pinecone RAG |
+| "How many Cardiology appointments were there?" | SQL + Supabase |
+| "Show appointment trends." | SQL + Analytics + Plotly |
+| "Which doctors work in Cardiology and what are the visiting hours?" | SQL + RAG |
+| "Analyze cancellation rates." | SQL + Analytics + AI explanation |
 
-The ingestion process:
-
-```text
-Hospital Documents
-       ↓
-Read Documents
-       ↓
-Split into Sections
-       ↓
-Add Metadata
-       ↓
-Generate Embeddings
-       ↓
-Store in Pinecone
-       ↓
-Save Vector IDs + Source Information
-```
-
-Each section contains metadata such as:
-
-- source file name;
-- section name;
-- ingestion/current timestamp;
-- vector ID.
-
-A separate JSON file is used to keep track of the created vectors and their sources.
-
-This allows the chatbot to perform **semantic search** instead of relying only on exact keyword matches.
+This allows the same interface to handle **information retrieval, database questions, and analytical requests**.
 
 ---
 
-## 3. 🗄️ Supabase PostgreSQL Database
-
-Structured hospital information is stored in a relational PostgreSQL database hosted by **Supabase**.
-
-The database contains multiple related tables connected through primary and foreign keys.
-
-Example conceptual structure:
+## 🏗️ Project Structure
 
 ```text
-Departments
-     │
-     ├──────────────┐
-     ▼              ▼
-  Doctors        Schedules
-     │
-     ▼
-Appointments
-```
-
-The exact tables and relationships depend on the hospital dataset and database design.
-
-The chatbot accesses this database through LangChain's `SQLDatabase` functionality.
-
-This allows the agent to generate and execute SQL queries for questions involving structured information.
-
----
-
-# 🤖 Agent Tool Selection
-
-The chatbot has two main tools.
-
-### Vector Search Tool
-
-Used for questions about information contained in hospital documents.
-
-Examples:
-
-```text
-"What are the visiting hours?"
-
-"What are the rules for hospital visitors?"
-
-"What documents are required for admission?"
-```
-
-### SQL Database Tool
-
-Used for questions involving structured hospital data.
-
-Examples:
-
-```text
-"Which doctors work in cardiology?"
-
-"Which doctors are available tomorrow?"
-
-"How many doctors work in each department?"
-```
-
-### Combined Questions
-
-Some questions require both tools.
-
-Example:
-
-```text
-"Which cardiologists are working tomorrow and what are
-the visiting rules for their patients?"
-```
-
-The agent can:
-
-```text
-Question
-   ↓
-Understand requirements
-   ↓
-SQL Tool ────────→ Find cardiologists/schedule
-   │
-   └── Vector Tool → Find visiting rules
-              ↓
-        Gemini combines results
-              ↓
-          Final answer
-```
-
----
-
-# 🖥️ Streamlit Interface
-
-The chatbot is presented through a simple Streamlit web interface.
-
-The interface is responsible for:
-
-- displaying the application;
-- displaying conversation history;
-- accepting user questions;
-- sending questions to the LangChain agent;
-- displaying the generated response.
-
-The Streamlit layer does **not** contain database ingestion logic.
-
-This keeps the user interface separate from the application's backend architecture.
-
----
-
-# 📁 Project Structure
-
-```text
-hospital-chatbot/
+hospital-ai/
 │
-├── .github/
-│   └── instructions/
-│       └── project-context.instructions.md
-|
-├── .streamlit/
-│   ├── config.toml
-│   └── secrets.toml
-|
+├── app.py                       # Streamlit application
+├── agent.py                     # Gemini/LangChain AI agent
+├── tools.py                     # Tools available to the agent
+├── sql_db.py                    # Supabase/PostgreSQL connection
+├── vector_db.py                 # Pinecone document ingestion
+├── analytics.py                 # Runtime analytics & visualizations
+│
+├── database_analysis.ipynb      # Data cleaning & exploratory analysis
 │
 ├── data/
-│   ├── hospital/
-│   │   ├── for_workers.docx
-│   │   ├── general.pdf
-│   │
-│   └── vector_ids.json
+│   ├── hospital/               # Hospital documents
+│   └── csv/                    # Structured hospital datasets
 │
-├── app.py
-├── agent.py
-├── tools.py
-├── vector_db.py
-├── sql_db.py
-│
-├── database_analysis.ipynb
+├── vector_ids.json              # Vector/source metadata
 │
 ├── requirements.txt
-├── .env
+├── .env                         # Local secrets
 ├── .gitignore
 └── README.md
 ```
 
-## File Responsibilities
+### Separation of responsibilities
 
-| File | Responsibility |
+**`app.py`**  
+User interface and dashboard.
+
+**`agent.py`**  
+Central AI orchestration and tool selection.
+
+**`tools.py`**  
+Connects the AI agent to SQL, RAG, and analytics capabilities.
+
+**`sql_db.py`**  
+Provides access to the Supabase PostgreSQL database.
+
+**`vector_db.py`**  
+Processes hospital documents and populates Pinecone.
+
+**`analytics.py`**  
+Performs analytical calculations and prepares visualizations.
+
+**`database_analysis.ipynb`**  
+Cleans, validates, and explores the original datasets.
+
+---
+
+## 🛠️ Tech Stack
+
+| Technology | Purpose |
 |---|---|
-| `app.py` | Streamlit user interface |
-| `agent.py` | Gemini/LangChain agent configuration and system instructions |
-| `tools.py` | Vector search and SQL database tools |
-| `vector_db.py` | Hospital document ingestion into Pinecone |
-| `sql_db.py` | Supabase PostgreSQL / LangChain SQLDatabase configuration |
-| `database_analysis.ipynb` | Data cleaning, exploration and basic analytics |
-| `data/hospital/` | Source hospital documents |
-| `data/vector_ids.json` | Vector IDs and source metadata |
-| `.streamlit/config.toml` | Streamlit application settings |
-| `.streamlit/secrets.toml` | Local Streamlit secrets; never commit this file |
-| `requirements.txt` | Python dependencies |
-| `.env` | API keys and database credentials |
-| `README.md` | Project documentation |
+| **Python** | Core application |
+| **Google Gemini** | AI reasoning and natural-language responses |
+| **LangChain** | Agent and tool orchestration |
+| **Supabase / PostgreSQL** | Structured hospital data |
+| **Pinecone** | Vector database for hospital documents |
+| **Pandas** | Data cleaning and analysis |
+| **Plotly** | Interactive visualizations |
+| **Streamlit** | Web interface and dashboard |
 
 ---
 
-# 🧹 Data Analysis & Cleaning
+## 🔄 Data Pipeline
 
-Before using structured data in the relational database, the dataset is inspected and cleaned using:
+### Structured Data
 
-- **Pandas**
-- **Matplotlib**
-- Jupyter Notebook
+```text
+CSV Dataset
+     ↓
+Pandas
+     ↓
+Cleaning & Validation
+     ↓
+database_analysis.ipynb
+     ↓
+Supabase PostgreSQL
+     ↓
+SQL Tool
+     ↓
+Gemini Agent
+```
 
-The analysis includes:
+### Hospital Documents
 
-- checking data types;
-- identifying missing values;
-- identifying duplicates;
-- checking invalid values;
-- basic descriptive statistics;
-- simple visualizations;
-- documenting relevant observations.
-
-The notebook is kept separate from the application code so that exploratory analysis does not become part of the chatbot runtime.
+```text
+PDF / DOCX
+     ↓
+vector_db.py
+     ↓
+Text Extraction
+     ↓
+Section Splitting
+     ↓
+Embeddings
+     ↓
+Pinecone
+     ↓
+RAG Tool
+     ↓
+Gemini Agent
+```
 
 ---
 
-# 🔐 Environment Variables
+## 📈 AI-Driven Dashboard
 
-API keys and database credentials should **never be hardcoded** into Python files or committed to GitHub.
+The dashboard is designed around the user's question rather than a collection of predefined charts.
 
-Create a local `.env` file containing the required credentials.
+For example:
 
-Example:
+```text
+User:
+"Analyze appointment cancellations over the last 6 months."
+```
+
+The system can produce:
+
+```text
+┌─────────────────────────────────────┐
+│ 🤖 AI Analysis                      │
+│                                     │
+│ Cancellation rates increased over   │
+│ the selected period...              │
+├─────────────────────────────────────┤
+│ 📈 Cancellation Trend               │
+│                                     │
+│          [Interactive Chart]        │
+│                                     │
+├─────────────────────────────────────┤
+│ KPIs                                │
+│                                     │
+│ Total Appointments     3,430       │
+│ Cancelled              382         │
+│ Cancellation Rate      11.1%       │
+└─────────────────────────────────────┘
+```
+
+The visualization is therefore part of the **AI workflow**, rather than a separate static analytics page.
+
+---
+
+## 🔐 Configuration
+
+Create a `.env` file in the project root:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key
-
 PINECONE_API_KEY=your_pinecone_api_key
-PINECONE_INDEX_NAME=your_pinecone_index
-
-SUPABASE_DATABASE_URL=your_postgresql_connection_string
+PINECONE_INDEX_NAME=your_index_name
+SUPABASE_DATABASE_URL=your_database_url
 ```
 
-The exact variables should match those used by the implementation.
-
-Add `.env` and `.venv` to `.gitignore`:
-
-```gitignore
-.env
-.venv/
-__pycache__/
-*.pyc
-.ipynb_checkpoints/
-```
+> **Never commit `.env` or API keys to GitHub.**
 
 ---
 
-# ⚙️ Installation
+## 🚀 Getting Started
 
-## 1. Clone the repository
+### 1. Clone the repository
 
 ```bash
-git clone <repository-url>
-cd hospital-chatbot
+git clone <your-repository-url>
+cd hospital-ai
 ```
 
-## 2. Create a virtual environment
+### 2. Create a virtual environment
 
 ```bash
 python -m venv .venv
 ```
 
-Activate it on macOS/Linux:
+Activate it:
+
+**macOS / Linux**
 
 ```bash
 source .venv/bin/activate
 ```
 
-On Windows:
+**Windows**
 
 ```bash
 .venv\Scripts\activate
 ```
 
-## 3. Install dependencies
+### 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## 4. Configure environment variables
+### 4. Configure environment variables
 
-Create `.env` and add the required Gemini, Pinecone, and Supabase credentials.
+Create `.env` and add the required API keys and database connection.
 
----
+### 5. Prepare the databases
 
-# 🗃️ Database Setup
+Before running the application:
 
-The project uses two different databases for two different purposes.
+- Clean and validate the structured dataset
+- Populate the Supabase PostgreSQL database
+- Process hospital documents
+- Populate the Pinecone vector database
 
-### Pinecone
-
-Pinecone stores vector representations of hospital document sections.
-
-Before running the chatbot, the hospital documents must be processed by the vector database ingestion pipeline.
-
-Conceptually:
-
-```bash
-python vector_db.py
-```
-
-This process:
-
-1. reads the hospital documents;
-2. splits them into sections;
-3. creates embeddings;
-4. adds metadata;
-5. uploads the vectors to Pinecone;
-6. saves vector/source information.
-
-### Supabase
-
-The relational PostgreSQL database must be created and populated separately.
-
-It should contain the required hospital tables and relationships.
-
-The application then connects to this database through `sql_db.py`.
-
----
-
-# ▶️ Running the Application
-
-After configuring the environment and databases:
+### 6. Run the application
 
 ```bash
 streamlit run app.py
 ```
 
-The Streamlit interface will open in the browser.
+---
+
+## 🧪 Example Questions
+
+Once the application is running, try:
+
+### Hospital information
+
+> What are the hospital visiting hours?
+
+### Database
+
+> How many appointments were scheduled last month?
+
+### Comparison
+
+> Compare appointment volumes between Cardiology and Neurology.
+
+### Analytics
+
+> Show the appointment trend for the last six months.
+
+### Combined knowledge
+
+> Which doctors work in Cardiology and what are the visiting rules?
+
+### Deeper analysis
+
+> Analyze appointment cancellations and explain the trend.
 
 ---
 
-# 💬 Example Questions
+## 🎯 Design Goals
 
-### 📚 Document / Vector Search
+The project focuses on several practical AI engineering concepts:
 
-```text
-What are the hospital visiting rules?
+- **Retrieval-Augmented Generation (RAG)**
+- **Tool-using AI agents**
+- **Natural-language SQL**
+- **Relational database design**
+- **Data cleaning and validation**
+- **Exploratory data analysis**
+- **AI-driven analytics**
+- **Interactive data visualization**
+- **Modular software architecture**
+- **LLM + external data integration**
 
-What are the visiting hours?
-
-What are the admission requirements?
-```
-
-### 🗄️ SQL Database
-
-```text
-Which doctors work in the cardiology department?
-
-Which doctors are available tomorrow?
-
-How many doctors work in each department?
-```
-
-### 🔀 Combined Search
-
-```text
-Which cardiologists are working tomorrow and what are
-the visiting rules for their patients?
-```
-
-The last type of question demonstrates the main advantage of the agent architecture: **the chatbot can combine structured and unstructured information.**
+The goal is not simply to build a chatbot, but to demonstrate how an LLM can act as an **interface to multiple information and analytics systems**.
 
 ---
 
-# 🧪 Testing
+## 🔒 Security & Reliability
 
-The application should be tested with at least three categories of questions.
+The platform is designed with several basic safeguards:
 
-### Test 1 — Vector Database
+- API keys stored outside source code
+- `.env` excluded from version control
+- Structured data separated from document knowledge
+- Database operations separated from the UI
+- AI responses grounded in retrieved information
+- Analytics based on actual database results
+- No intentional modification of production data through normal user queries
 
-Ask a question whose answer exists in the hospital documents.
-
-Expected behavior:
-
-```text
-User
- ↓
-Agent
- ↓
-Vector Search Tool
- ↓
-Pinecone
- ↓
-Relevant document sections
- ↓
-Gemini response
-```
-
-### Test 2 — SQL Database
-
-Ask a question whose answer exists in the relational database.
-
-Expected behavior:
-
-```text
-User
- ↓
-Agent
- ↓
-SQL Tool
- ↓
-Supabase PostgreSQL
- ↓
-Query result
- ↓
-Gemini response
-```
-
-### Test 3 — Both Sources
-
-Ask a question requiring information from both databases.
-
-Expected behavior:
-
-```text
-User
- ↓
-Agent
- ├──→ Vector Search
- │
- └──→ SQL Query
-       ↓
-Combined information
-       ↓
-Gemini
-       ↓
-Final response
-```
+The AI should not invent hospital statistics or policies when the required information is unavailable.
 
 ---
 
-# 🛠️ Technology Stack
+## 🚧 Project Status
 
-| Technology | Purpose |
-|---|---|
-| **Python** | Main programming language |
-| **LangChain** | Agent and tool orchestration |
-| **Google Gemini** | Large language model |
-| **Google Generative AI Embeddings** | Document embeddings |
-| **Pinecone** | Vector database |
-| **Supabase** | PostgreSQL database hosting |
-| **SQLDatabase** | LangChain interface for SQL |
-| **Streamlit** | Web chatbot interface |
-| **Pandas** | Data cleaning and analysis |
-| **Matplotlib** | Data visualization |
-| **Jupyter Notebook** | Exploratory data analysis |
+This project is being developed as an **AI engineering and analytics project**, with the architecture designed to support incremental development.
+
+Current development priorities:
+
+- [ ] Prepare and clean hospital datasets
+- [ ] Build Supabase relational database
+- [ ] Implement Pinecone document ingestion
+- [ ] Implement RAG search
+- [ ] Implement SQL agent tool
+- [ ] Implement analytics layer
+- [ ] Integrate Gemini agent
+- [ ] Build Streamlit interface
+- [ ] Add AI-driven visualizations
+- [ ] Test multi-tool queries
+- [ ] Deploy the application
 
 ---
 
-# 🏗️ Design Principles
+## 💡 Why This Architecture?
 
-The project follows several important architectural principles.
-
-### Separation of concerns
-
-Each component has a specific responsibility:
+This project uses:
 
 ```text
-UI
- ↓
-Agent
- ↓
-Tools
- ↓
-Databases
+                 AI Agent
+                /   |   \
+              SQL  RAG  Analytics
+                \   |   /
+                 Streamlit
 ```
 
-The Streamlit interface should not contain database ingestion logic.
+The AI becomes the **orchestration layer** connecting hospital data, documents, analytics, and visualization.
 
-### Two knowledge sources
+This makes the platform capable of moving from:
 
-Unstructured and structured information are deliberately separated:
+**Question → Data → Analysis → Visualization → Explanation**
 
-```text
-Hospital Documents → Pinecone
-Structured Data     → PostgreSQL
-```
-
-### Agent-driven tool selection
-
-The chatbot should determine which source is appropriate instead of forcing every question through the same database.
-
-### Secure configuration
-
-Credentials belong in environment variables and should never be committed to the repository.
-
-### Simple architecture
-
-The project should remain understandable and maintainable rather than introducing unnecessary abstractions or services.
+within a single user interaction.
 
 ---
 
-# ⚠️ Security & Privacy
+## 📌 Project Goal
 
-This project is intended as an educational AI application.
+The long-term goal is to create a unified hospital intelligence interface where users can interact with hospital information using natural language instead of manually searching documents, writing SQL queries, or building charts themselves.
 
-Do not commit:
-
-- API keys;
-- database passwords;
-- private connection strings;
-- `.env` files;
-- sensitive patient information.
-
-For a real-world medical application, additional requirements would be necessary, including authentication, authorization, audit logging, data protection, validation, monitoring, and appropriate regulatory compliance.
-
-The chatbot should therefore **not be treated as a replacement for professional medical advice or a production clinical system.**
+> **Ask the question. Let the AI find the data, analyze it, visualize it, and explain it.**
 
 ---
 
-# 🎯 Project Goals
+### Author
 
-The completed project should demonstrate the ability to:
+**Filip Rybkin**
 
-- build a LangChain agent;
-- integrate Google Gemini;
-- create and query a Pinecone vector database;
-- process and embed documents;
-- work with PostgreSQL/Supabase;
-- use LangChain `SQLDatabase`;
-- create agent tools;
-- combine structured and unstructured information;
-- clean and analyze data with Pandas;
-- visualize data with Matplotlib;
-- build a Streamlit chatbot;
-- manage configuration securely with environment variables.
-
----
-
-# ✅ Definition of Done
-
-The project is considered complete when:
-
-- [ ] Hospital documents are stored and processed.
-- [ ] Documents are split into meaningful sections.
-- [ ] Sections contain appropriate metadata.
-- [ ] Embeddings are stored in Pinecone.
-- [ ] Vector IDs and source information are saved.
-- [ ] Supabase PostgreSQL database is created.
-- [ ] Multiple relational tables and relationships are implemented.
-- [ ] Structured data is cleaned and analyzed.
-- [ ] LangChain `SQLDatabase` connects to Supabase.
-- [ ] Vector search is available as an agent tool.
-- [ ] SQL querying is available as an agent tool.
-- [ ] Gemini agent can select the appropriate tool.
-- [ ] Agent can use both tools for combined questions.
-- [ ] Streamlit chatbot works.
-- [ ] Secrets are stored outside the repository.
-- [ ] The application has been tested with vector, SQL, and combined questions.
-
----
-
-## 🚀 Final Architecture
-
-The complete system can be summarized as:
-
-```text
-                  ┌─────────────────────┐
-                  │      USER           │
-                  └──────────┬──────────┘
-                             │
-                             ▼
-                  ┌─────────────────────┐
-                  │     STREAMLIT       │
-                  │    CHAT INTERFACE   │
-                  └──────────┬──────────┘
-                             │
-                             ▼
-                  ┌─────────────────────┐
-                  │   GEMINI AGENT      │
-                  │     + LANGCHAIN     │
-                  └──────────┬──────────┘
-                             │
-                ┌────────────┴────────────┐
-                │                         │
-                ▼                         ▼
-       ┌─────────────────┐       ┌─────────────────┐
-       │ VECTOR TOOL     │       │    SQL TOOL     │
-       └────────┬────────┘       └────────┬────────┘
-                │                         │
-                ▼                         ▼
-       ┌─────────────────┐       ┌─────────────────┐
-       │    PINECONE     │       │    SUPABASE     │
-       │  Vector Search  │       │   PostgreSQL    │
-       └────────┬────────┘       └────────┬────────┘
-                │                         │
-                ▼                         ▼
-       Hospital Documents        Structured Hospital
-                                  Data & Relationships
-```
-
-**Hospital AI Chatbot — combining semantic document search and structured hospital data through an intelligent LangChain agent.**
+AI / Data / Software Engineering Project

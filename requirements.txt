@@ -12,5 +12,6 @@ psycopg2-binary
 
 pandas
 matplotlib
+plotly
 jupyter
 python-dotenv
