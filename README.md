@@ -229,6 +229,11 @@ hospital-chatbot/
 ├── .github/
 │   └── instructions/
 │       └── project-context.instructions.md
+|
+├── .streamlit/
+│   ├── config.toml
+│   └── secrets.toml
+|
 │
 ├── data/
 │   ├── hospital/
@@ -264,6 +269,8 @@ hospital-chatbot/
 | `database_analysis.ipynb` | Data cleaning, exploration and basic analytics |
 | `data/hospital/` | Source hospital documents |
 | `data/vector_ids.json` | Vector IDs and source metadata |
+| `.streamlit/config.toml` | Streamlit application settings |
+| `.streamlit/secrets.toml` | Local Streamlit secrets; never commit this file |
 | `requirements.txt` | Python dependencies |
 | `.env` | API keys and database credentials |
 | `README.md` | Project documentation |
