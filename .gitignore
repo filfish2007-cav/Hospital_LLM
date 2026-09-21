@@ -41,6 +41,7 @@ htmlcov/
 
 # Streamlit
 .streamlit/secrets.toml
+.config.toml
 
 # IDE settings
 .idea/
