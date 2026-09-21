@@ -237,9 +237,8 @@ hospital-chatbot/
 │
 ├── data/
 │   ├── hospital/
-│   │   ├── document_1
-│   │   ├── document_2
-│   │   └── ...
+│   │   ├── for_workers.docx
+│   │   ├── general.pdf
 │   │
 │   └── vector_ids.json
 │
