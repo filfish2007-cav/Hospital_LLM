@@ -295,7 +295,7 @@ SUPABASE_DATABASE_URL=your_database_url
 
 ```bash
 git clone <your-repository-url>
-cd hospital-ai
+cd hospital_docs-ai
 ```
 
 ### 2. Create a virtual environment
