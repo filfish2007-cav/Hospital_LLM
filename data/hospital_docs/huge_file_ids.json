@@ -1,0 +1,87 @@
+[
+    {
+        "id": "064e9521-0a5e-435d-8d1e-6708dcb5ca3a",
+        "file_name": "general.pdf",
+        "block_name": "1. Загальні відомості про Медичний Центр \"Омега-Мед\""
+    },
+    {
+        "id": "87451fe3-ab12-4896-871a-a60bac91907f",
+        "file_name": "general.pdf",
+        "block_name": "2. Інформаційні Системи Лікарні (ІСЛ)"
+    },
+    {
+        "id": "4e6958e4-f764-413e-8ba8-f14dd564cca5",
+        "file_name": "general.pdf",
+        "block_name": "3. Медичне Обладнання та Інфраструктура"
+    },
+    {
+        "id": "2950e684-b06c-4e83-a93e-b4d7a6ed1406",
+        "file_name": "general.pdf",
+        "block_name": "4. Протоколи Технічного Обслуговування та Експлуатації"
+    },
+    {
+        "id": "fa103975-8fd2-4938-af0f-70c81fe87266",
+        "file_name": "general.pdf",
+        "block_name": "5. Протоколи Безпеки та Якості"
+    },
+    {
+        "id": "b4f57ba0-843c-4b54-96c2-f80e7ae08e07",
+        "file_name": "for_workers.docx",
+        "block_name": "1. Вступ. Загальні положення"
+    },
+    {
+        "id": "261eae4c-2a88-43ad-bd8d-cab241d23ba0",
+        "file_name": "for_workers.docx",
+        "block_name": "2. Прийом на роботу та адаптація"
+    },
+    {
+        "id": "9b80e3c3-10bf-417c-bfc1-971ef90e1b1f",
+        "file_name": "for_workers.docx",
+        "block_name": "3. Робочий час та його облік"
+    },
+    {
+        "id": "264513c7-c86e-4c88-ac3e-93eee8e21d24",
+        "file_name": "for_workers.docx",
+        "block_name": "4. Оплата праці"
+    },
+    {
+        "id": "6a4bc568-dd43-453a-a6ec-147c38c01eb5",
+        "file_name": "for_workers.docx",
+        "block_name": "5. Відпустки"
+    },
+    {
+        "id": "8d70818d-abb5-4400-a15a-0c120b428174",
+        "file_name": "for_workers.docx",
+        "block_name": "6. Відрядження"
+    },
+    {
+        "id": "fe3fdb2c-9acc-4981-8329-d85d1d8ddff8",
+        "file_name": "for_workers.docx",
+        "block_name": "7. Навчання та професійний розвиток"
+    },
+    {
+        "id": "8ca558c8-f4c7-41d9-8568-ad4f07c683da",
+        "file_name": "for_workers.docx",
+        "block_name": "8. Дисциплінарна відповідальність та внутрішній розпорядок"
+    },
+    {
+        "id": "f3d3b2c3-3341-4cdb-9268-28dbf29b16bc",
+        "file_name": "for_workers.docx",
+        "block_name": "9. Охорона праці та безпека"
+    },
+    {
+        "id": "eb2a354c-1347-44e9-842d-f206e3cfb28e",
+        "file_name": "for_workers.docx",
+        "block_name": "10. Конфіденційність та захист інформації"
+    },
+    {
+        "id": "28fc6428-0aab-4286-9e5f-2dcab428f844",
+        "file_name": "for_workers.docx",
+        "block_name": "11. Комунікація та зворотний зв'язок"
+    },
+    {
+        "id": "6175b547-f939-406a-a0cb-d4346f620c09",
+        "file_name": "for_workers.docx",
+        "block_name": "12. Припинення трудових відносин"
+    }
+]
