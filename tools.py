@@ -164,7 +164,7 @@ def search_hospital_documents(query: str) -> str:
     :param query: short search phrase in Ukrainian with the key terms
     :return: the most relevant document sections with their sources
     """
-    results = get_vector_store().similarity_search(query, k=3)
+    results = get_vector_store().similarity_search(query, k=5)
 
     if not results:
         return "No relevant documents found."
