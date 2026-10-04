@@ -1,11 +1,20 @@
 import re
 from typing import Literal
-
+from functools import lru_cache
+import os
+from dotenv import load_dotenv
 import pandas as pd
 import plotly.express as px
 from langchain_core.tools import tool
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_pinecone import PineconeVectorStore
+from pinecone import Pinecone
 
 from sql_db import engine, get_sql_database
+
+load_dotenv()
+
+INDEX_NAME = "hospital-docs"
 
 
 _READ_ONLY_SQL = re.compile(r"^\s*(SELECT|WITH)\b", re.IGNORECASE)
@@ -108,4 +117,73 @@ def create_hospital_chart(
     return figure.to_json()
 
 
-HOSPITAL_TOOLS = [query_hospital_database, create_hospital_chart]
+@lru_cache(maxsize=1)
+def get_vector_store() -> PineconeVectorStore:
+    """Connect to the Pinecone index with the hospital documents (only once)."""
+    embedding = GoogleGenerativeAIEmbeddings(
+        model="gemini-embedding-001",  # must be the same model as when uploading
+        api_key=os.getenv("GEMINI_API_KEY"),
+    )
+    pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+    return PineconeVectorStore(index=pc.Index(INDEX_NAME), embedding=embedding)
+
+
+@tool
+def search_hospital_documents(query: str) -> str:
+    """Search the hospital's internal text documents (vector database).
+
+    The documents are written in Ukrainian and contain these indexed sections:
+
+    - general.pdf, about Medical Center "Омега-Мед":
+      1) general information about the medical center;
+      2) hospital information systems;
+      3) medical equipment and infrastructure;
+      4) technical maintenance and operation protocols; and
+      5) safety and quality protocols.
+    - for_workers.docx, an internal employee handbook:
+      1) introduction and general provisions;
+      2) hiring and onboarding;
+      3) working hours and time tracking;
+      4) pay;
+      5) leave;
+      6) business travel;
+      7) training and professional development;
+      8) disciplinary responsibility and internal rules;
+      9) occupational health and safety;
+      10) confidentiality and information protection;
+      11) communication and feedback; and
+      12) termination of employment.
+
+    Use this tool for questions about the medical center, its systems,
+    equipment, infrastructure, maintenance, safety and quality protocols, or
+    employee rules and employment procedures. Do NOT use it for patient
+    records, database counts, or statistics; those belong to the SQL database.
+    Do not assume that a topic is covered if it is not supported by retrieved
+    sections.
+
+    :param query: short search phrase in Ukrainian with the key terms
+    :return: the most relevant document sections with their sources
+    """
+    results = get_vector_store().similarity_search(query, k=3)
+
+    if not results:
+        return "No relevant documents found."
+
+    parts = []
+    for doc in results:
+        source = (
+            f"[Document: {doc.metadata.get('file_name')} | "
+            f"Section: {doc.metadata.get('block_name')}]"
+        )
+        parts.append(f"{source}\n{doc.page_content}")
+
+    return "\n\n---\n\n".join(parts)
+
+
+HOSPITAL_TOOLS = [
+    query_hospital_database,
+    create_hospital_chart,
+    search_hospital_documents,
+]
+
+
