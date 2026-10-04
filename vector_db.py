@@ -9,7 +9,7 @@ from uuid import uuid4
 from pinecone import ServerlessSpec
 from pinecone import Pinecone
 
-# завантадити дані з .env
+# завантажити дані з .env
 dotenv.load_dotenv()
 
 api_key = os.getenv("GEMINI_API_KEY")

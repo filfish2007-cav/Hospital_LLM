@@ -4,9 +4,9 @@ langchain
 langchain-core
 langchain-community
 langchain-google-genai
-langchain-pinecone
+langchain-pinecone==0.2.13
 
-pinecone
+pinecone>=6.0.0,<8.0.0
 sqlalchemy
 psycopg2-binary
 
