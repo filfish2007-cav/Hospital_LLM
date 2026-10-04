@@ -1,131 +1,91 @@
 # 🏥 Hospital AI Intelligence Platform
 
-> **An AI-first hospital analytics platform that connects structured hospital data, unstructured documents, and interactive analytics through a single intelligent interface.**
+> An AI-first hospital assistant that answers questions from structured hospital data and hospital documents through one Streamlit interface.
 
-The **Hospital AI Intelligence Platform** combines **Gemini, LangChain, Supabase PostgreSQL, Pinecone, Pandas, Plotly, and Streamlit** to create an AI system capable of answering questions, retrieving hospital information, analyzing operational data, and generating visual insights.
+The Hospital AI Intelligence Platform combines Gemini, LangChain, Supabase PostgreSQL, Pinecone, and Streamlit. Its agent has **two tools only**:
 
-Instead of building a chatbot and a separate static dashboard, this project puts **AI at the center of the entire experience**.
+- **SQL tool** — queries the structured hospital database in Supabase.
+- **RAG tool** — retrieves relevant hospital-document content from Pinecone.
+
+The agent selects the right tool for a question, or uses both when the answer needs both database facts and document context.
 
 ---
 
 ## ✨ What Can It Do?
 
-The platform can work with two different types of hospital knowledge:
+### 📊 Structured hospital data — SQL tool
 
-### 📊 Structured Data
+The cleaned hospital CSVs are loaded into **Supabase PostgreSQL**. The SQL tool can answer database questions about patients, encounters, conditions, medications, observations, and procedures.
 
-Stored in **Supabase PostgreSQL**:
+Examples:
 
-- Patients
-- Doctors
-- Departments
-- Appointments
-- Treatments
-- Billing
-- Other relational hospital data
+> "What medications was patient X prescribed?"
 
-This allows the AI to answer questions such as:
+> "How many emergency encounters are in the dataset?"
 
-> "How many appointments did Cardiology have last month?"
+> "What are the most common recorded conditions?"
 
-> "Which department has the most appointments?"
+### 📄 Hospital documents — RAG tool
 
-> "Show the appointment trend over the last six months."
+Hospital documents are chunked, embedded, and stored in **Pinecone**. The RAG tool retrieves relevant passages before the model answers questions about policies and hospital information.
 
----
-
-### 📄 Unstructured Documents
-
-Stored in **Pinecone** through a RAG pipeline:
-
-- Hospital rules
-- Visiting hours
-- Patient information
-- Department information
-- Hospital policies
-- Other PDF/DOCX documents
-
-This allows questions such as:
+Examples:
 
 > "What are the hospital visiting hours?"
 
-> "What are the patient visiting rules?"
+> "What is the policy for emergency admissions?"
 
----
+### 🔀 Questions that need both tools
 
-### 🤖 AI-Driven Analytics
+Some questions combine a fact from the database with policy information from documents.
 
-The AI can combine database queries with analytics and visualization.
+> "What encounters did patient X have, and what is the relevant follow-up policy?"
 
-For example:
-
-> **"Analyze appointment cancellations over the last six months and show me the trend."**
-
-The system can:
-
-1. Query the hospital database
-2. Calculate relevant metrics
-3. Generate a visualization
-4. Explain the results in natural language
-5. Display everything inside the Streamlit interface
+The agent can query Supabase for the encounter data, retrieve the policy from Pinecone, and produce one grounded answer.
 
 ---
 
 ## 🧠 Architecture
 
-The platform follows an **AI-first architecture**:
-
 ```text
                          USER
                            │
                            ▼
-                     ┌──────────┐
-                     │ Streamlit│
-                     │  app.py  │
-                     └────┬─────┘
+                    ┌────────────┐
+                    │ Streamlit  │
+                    │   app.py   │
+                    └─────┬──────┘
                           │
                           ▼
-                    ┌───────────┐
-                    │ Gemini AI │
-                    │ agent.py  │
-                    └─────┬─────┘
+                    ┌────────────┐
+                    │ Gemini /   │
+                    │ LangChain  │
+                    │   Agent    │
+                    └─────┬──────┘
                           │
-             ┌────────────┼────────────┐
-             ▼            ▼            ▼
-          SQL Tool     RAG Tool    Analytics Tool
-             │            │            │
-             ▼            ▼            ▼
-         Supabase      Pinecone    Pandas/Plotly
-         PostgreSQL    Vector DB      Analytics
-             │            │            │
-             └────────────┼────────────┘
-                          ▼
-                    AI Interpretation
-                          │
-                    ┌─────┴─────┐
-                    ▼           ▼
-                 Answer     Visualization
-                    │           │
-                    └─────┬─────┘
-                          ▼
-                    Streamlit UI
+             ┌────────────┴────────────┐
+             ▼                         ▼
+       ┌──────────┐               ┌──────────┐
+       │ SQL Tool │               │ RAG Tool │
+       └────┬─────┘               └────┬─────┘
+            ▼                          ▼
+     Supabase PostgreSQL             Pinecone
+     structured hospital data      hospital documents
 ```
 
-The AI agent decides which tools are necessary for each request.
+The agent does not use a separate analytics tool. It routes every request to the SQL tool, the RAG tool, or both.
 
 ---
 
 ## 🔍 Example Interactions
 
-| User request | System |
+| User request | Tool route |
 |---|---|
-| "What are the visiting hours?" | Pinecone RAG |
-| "How many Cardiology appointments were there?" | SQL + Supabase |
-| "Show appointment trends." | SQL + Analytics + Plotly |
-| "Which doctors work in Cardiology and what are the visiting hours?" | SQL + RAG |
-| "Analyze cancellation rates." | SQL + Analytics + AI explanation |
-
-This allows the same interface to handle **information retrieval, database questions, and analytical requests**.
+| "What are the visiting hours?" | RAG / Pinecone |
+| "How many emergency encounters are there?" | SQL / Supabase |
+| "What medications was this patient prescribed?" | SQL / Supabase |
+| "What is the follow-up policy for this patient's condition?" | SQL + RAG |
+| "Which procedures are recorded for patient X?" | SQL / Supabase |
 
 ---
 
@@ -136,16 +96,15 @@ hospital-ai/
 │
 ├── app.py                       # Streamlit application
 ├── agent.py                     # Gemini/LangChain AI agent
-├── tools.py                     # Tools available to the agent
+├── tools.py                     # SQL and RAG tools available to the agent
 ├── sql_db.py                    # Supabase/PostgreSQL connection
 ├── vector_db.py                 # Pinecone document ingestion
-├── analytics.py                 # Runtime analytics & visualizations
 │
 ├── database_analysis.ipynb      # Data cleaning & exploratory analysis
 │
 ├── data/
-│   ├── hospital/               # Hospital documents
-│   └── csv/                    # Structured hospital datasets
+│   ├── hospital/                 # Hospital documents
+│   └── csv/                      # Structured hospital datasets
 │
 ├── vector_ids.json              # Vector/source metadata
 │
@@ -158,25 +117,22 @@ hospital-ai/
 ### Separation of responsibilities
 
 **`app.py`**  
-User interface and dashboard.
+The Streamlit chat interface.
 
 **`agent.py`**  
-Central AI orchestration and tool selection.
+The central orchestration layer. It decides whether a question needs SQL, RAG, or both.
 
 **`tools.py`**  
-Connects the AI agent to SQL, RAG, and analytics capabilities.
+Defines the two tools exposed to the agent: one for SQL database queries and one for document retrieval.
 
 **`sql_db.py`**  
-Provides access to the Supabase PostgreSQL database.
+Connects the SQL tool to the Supabase PostgreSQL database.
 
 **`vector_db.py`**  
-Processes hospital documents and populates Pinecone.
-
-**`analytics.py`**  
-Performs analytical calculations and prepares visualizations.
+Processes hospital documents and stores their embeddings in Pinecone.
 
 **`database_analysis.ipynb`**  
-Cleans, validates, and explores the original datasets.
+Cleans, validates, explores, and exports the original hospital datasets before they are loaded into Supabase.
 
 ---
 
@@ -185,92 +141,50 @@ Cleans, validates, and explores the original datasets.
 | Technology | Purpose |
 |---|---|
 | **Python** | Core application |
-| **Google Gemini** | AI reasoning and natural-language responses |
-| **LangChain** | Agent and tool orchestration |
-| **Supabase / PostgreSQL** | Structured hospital data |
-| **Pinecone** | Vector database for hospital documents |
-| **Pandas** | Data cleaning and analysis |
-| **Plotly** | Interactive visualizations |
-| **Streamlit** | Web interface and dashboard |
+| **Google Gemini** | Natural-language reasoning and final responses |
+| **LangChain** | Agent and two-tool orchestration |
+| **Supabase / PostgreSQL** | Structured hospital data and SQL queries |
+| **Pinecone** | Vector search over hospital documents |
+| **Pandas** | Dataset cleaning and validation |
+| **Streamlit** | User interface |
 
 ---
 
 ## 🔄 Data Pipeline
 
-### Structured Data
+### Structured data
 
 ```text
-CSV Dataset
-     ↓
-Pandas
-     ↓
-Cleaning & Validation
-     ↓
-database_analysis.ipynb
-     ↓
+Raw hospital CSVs
+      ↓
+Cleaning & validation notebook
+      ↓
+Cleaned CSVs
+      ↓
 Supabase PostgreSQL
-     ↓
-SQL Tool
-     ↓
-Gemini Agent
+      ↓
+SQL tool
+      ↓
+Gemini agent
 ```
 
-### Hospital Documents
+### Hospital documents
 
 ```text
-PDF / DOCX
-     ↓
+PDF / DOCX documents
+      ↓
 vector_db.py
-     ↓
-Text Extraction
-     ↓
-Section Splitting
-     ↓
+      ↓
+Text extraction and chunking
+      ↓
 Embeddings
-     ↓
+      ↓
 Pinecone
-     ↓
-RAG Tool
-     ↓
-Gemini Agent
+      ↓
+RAG tool
+      ↓
+Gemini agent
 ```
-
----
-
-## 📈 AI-Driven Dashboard
-
-The dashboard is designed around the user's question rather than a collection of predefined charts.
-
-For example:
-
-```text
-User:
-"Analyze appointment cancellations over the last 6 months."
-```
-
-The system can produce:
-
-```text
-┌─────────────────────────────────────┐
-│ 🤖 AI Analysis                      │
-│                                     │
-│ Cancellation rates increased over   │
-│ the selected period...              │
-├─────────────────────────────────────┤
-│ 📈 Cancellation Trend               │
-│                                     │
-│          [Interactive Chart]        │
-│                                     │
-├─────────────────────────────────────┤
-│ KPIs                                │
-│                                     │
-│ Total Appointments     3,430       │
-│ Cancelled              382         │
-│ Cancellation Rate      11.1%       │
-└─────────────────────────────────────┘
-```
-
-The visualization is therefore part of the **AI workflow**, rather than a separate static analytics page.
 
 ---
 
@@ -285,7 +199,7 @@ PINECONE_INDEX_NAME=your_index_name
 SUPABASE_DATABASE_URL=your_database_url
 ```
 
-> **Never commit `.env` or API keys to GitHub.**
+> Never commit `.env` or API keys to GitHub.
 
 ---
 
@@ -295,16 +209,14 @@ SUPABASE_DATABASE_URL=your_database_url
 
 ```bash
 git clone <your-repository-url>
-cd hospital_docs-ai
+cd Hospital_LLM
 ```
 
-### 2. Create a virtual environment
+### 2. Create and activate a virtual environment
 
 ```bash
 python -m venv .venv
 ```
-
-Activate it:
 
 **macOS / Linux**
 
@@ -326,16 +238,15 @@ pip install -r requirements.txt
 
 ### 4. Configure environment variables
 
-Create `.env` and add the required API keys and database connection.
+Copy `.env.example` to `.env`, then add the required keys and database connection string.
 
-### 5. Prepare the databases
+### 5. Prepare the data sources
 
-Before running the application:
+Before starting the app:
 
-- Clean and validate the structured dataset
-- Populate the Supabase PostgreSQL database
-- Process hospital documents
-- Populate the Pinecone vector database
+1. Run the cleaning notebook and export the cleaned hospital CSVs.
+2. Create the Supabase schema and import the cleaned CSVs.
+3. Run document ingestion to populate the Pinecone index.
 
 ### 6. Run the application
 
@@ -347,121 +258,68 @@ streamlit run app.py
 
 ## 🧪 Example Questions
 
-Once the application is running, try:
-
-### Hospital information
+### Document knowledge
 
 > What are the hospital visiting hours?
 
-### Database
+### Database knowledge
 
-> How many appointments were scheduled last month?
+> How many inpatient encounters are recorded?
 
-### Comparison
-
-> Compare appointment volumes between Cardiology and Neurology.
-
-### Analytics
-
-> Show the appointment trend for the last six months.
+> What conditions are most common in the dataset?
 
 ### Combined knowledge
 
-> Which doctors work in Cardiology and what are the visiting rules?
-
-### Deeper analysis
-
-> Analyze appointment cancellations and explain the trend.
+> What medication did patient X receive, and what does the hospital policy say about follow-up?
 
 ---
 
 ## 🎯 Design Goals
 
-The project focuses on several practical AI engineering concepts:
+- Retrieval-Augmented Generation (RAG)
+- Tool-using AI agents
+- Natural-language SQL
+- Relational database design
+- Data cleaning and validation
+- Grounded responses from structured and unstructured sources
+- Modular software architecture
+- LLM integration with external data sources
 
-- **Retrieval-Augmented Generation (RAG)**
-- **Tool-using AI agents**
-- **Natural-language SQL**
-- **Relational database design**
-- **Data cleaning and validation**
-- **Exploratory data analysis**
-- **AI-driven analytics**
-- **Interactive data visualization**
-- **Modular software architecture**
-- **LLM + external data integration**
-
-The goal is not simply to build a chatbot, but to demonstrate how an LLM can act as an **interface to multiple information and analytics systems**.
+The goal is not just a chatbot. It is a practical example of an LLM acting as an interface to a relational database and a document knowledge base.
 
 ---
 
 ## 🔒 Security & Reliability
 
-The platform is designed with several basic safeguards:
-
-- API keys stored outside source code
-- `.env` excluded from version control
-- Structured data separated from document knowledge
-- Database operations separated from the UI
-- AI responses grounded in retrieved information
-- Analytics based on actual database results
-- No intentional modification of production data through normal user queries
-
-The AI should not invent hospital statistics or policies when the required information is unavailable.
+- API keys stay outside source control in `.env`.
+- Structured data and document knowledge remain separate sources.
+- The agent uses retrieved SQL results and document passages to ground its answers.
+- Normal user questions are read-only; they do not modify hospital data.
+- The application should clearly say when the available data cannot support an answer.
 
 ---
 
 ## 🚧 Project Status
 
-This project is being developed as an **AI engineering and analytics project**, with the architecture designed to support incremental development.
-
-Current development priorities:
-
-- [ ] Prepare and clean hospital datasets
-- [ ] Build Supabase relational database
+- [x] Clean and validate hospital datasets
+- [ ] Load the cleaned relational data into Supabase
 - [ ] Implement Pinecone document ingestion
-- [ ] Implement RAG search
-- [ ] Implement SQL agent tool
-- [ ] Implement analytics layer
-- [ ] Integrate Gemini agent
-- [ ] Build Streamlit interface
-- [ ] Add AI-driven visualizations
-- [ ] Test multi-tool queries
+- [ ] Implement the RAG tool
+- [ ] Implement the SQL tool
+- [ ] Integrate the Gemini/LangChain agent
+- [ ] Build the Streamlit interface
+- [ ] Test SQL-only, RAG-only, and combined questions
 - [ ] Deploy the application
-
----
-
-## 💡 Why This Architecture?
-
-This project uses:
-
-```text
-                 AI Agent
-                /   |   \
-              SQL  RAG  Analytics
-                \   |   /
-                 Streamlit
-```
-
-The AI becomes the **orchestration layer** connecting hospital data, documents, analytics, and visualization.
-
-This makes the platform capable of moving from:
-
-**Question → Data → Analysis → Visualization → Explanation**
-
-within a single user interaction.
 
 ---
 
 ## 📌 Project Goal
 
-The long-term goal is to create a unified hospital intelligence interface where users can interact with hospital information using natural language instead of manually searching documents, writing SQL queries, or building charts themselves.
+Build one hospital intelligence interface where users can ask natural-language questions and receive answers grounded in either the hospital database, hospital documents, or both.
 
-> **Ask the question. Let the AI find the data, analyze it, visualize it, and explain it.**
-
----
+> Ask a question. Let the agent choose SQL, RAG, or both—and answer using the right evidence.
 
 ### Author
 
-**Filip Rybkin**
-
+**Filip Rybkin**  
 AI / Data / Software Engineering Project
