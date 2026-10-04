@@ -15,3 +15,6 @@ matplotlib
 plotly
 jupyter
 python-dotenv
+
+pymupdf
+python-docx
