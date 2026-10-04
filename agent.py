@@ -91,7 +91,7 @@ search for counts or patient records.
 
 def _create_agent():
     """Create the Gemini agent with the shared hospital tools."""
-    model_name = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+    model_name = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
     model = ChatGoogleGenerativeAI(model=model_name, temperature=0)
     return create_agent(
         model=model,
@@ -134,14 +134,25 @@ def get_final_answer(result: dict[str, Any]) -> str:
     return ""
 
 
-# if __name__ == "__main__":
-#     example_questions = (
-#         "How many encounters are recorded?",
-#         "Show me top months by encounters in 2025.",
-#         "Which conditions are most common?",
-#     )
-#
-#     for example in example_questions:
-#         print(f"\nUser: {example}")
-#         result = ask_hospital_agent(example)
-#         print(f"Assistant: {get_final_answer(result)}")
+if __name__ == "__main__":
+    questions = [
+        "How many patients are in the database?",
+        "What are the 5 most common conditions?",
+        "Show a chart of encounters per year.",
+        "What MRI machine does the hospital use?",
+        "Hi!",
+    ]
+
+    for question in questions:
+        result = ask_hospital_agent(question)
+
+        # collect the names of all tools the agent called
+        tools_used = [
+            call["name"]
+            for message in result["messages"]
+            for call in getattr(message, "tool_calls", None) or []
+        ]
+
+        print("\nQ:", question)
+        print("Tools:", tools_used or "none")
+        print("A:", get_final_answer(result))
