@@ -29,8 +29,13 @@ def _validate_read_only_query(sql_query: str) -> str:
     if _FORBIDDEN_SQL.search(query):
         raise ValueError("The database tool only allows read-only SQL queries.")
 
-    if ";" in query or "--" in query or "/*" in query or "*/" in query:
+    if "--" in query or "/*" in query or "*/" in query:
         raise ValueError("SQL comments and multiple statements are not allowed.")
+
+    if ";" in query:
+        if not query.endswith(";") or query.count(";") != 1:
+            raise ValueError("Only one SQL statement is allowed.")
+        query = query[:-1].rstrip()
 
     return query
 
