@@ -78,14 +78,14 @@ def get_final_answer(result: dict[str, Any]) -> str:
     return ""
 
 
-if __name__ == "__main__":
-    example_questions = (
-        "How many encounters are recorded?",
-        "Show me top months by encounters in 2025.",
-        "Which conditions are most common?",
-    )
-
-    for example in example_questions:
-        print(f"\nUser: {example}")
-        result = ask_hospital_agent(example)
-        print(f"Assistant: {get_final_answer(result)}")
+# if __name__ == "__main__":
+#     example_questions = (
+#         "How many encounters are recorded?",
+#         "Show me top months by encounters in 2025.",
+#         "Which conditions are most common?",
+#     )
+#
+#     for example in example_questions:
+#         print(f"\nUser: {example}")
+#         result = ask_hospital_agent(example)
+#         print(f"Assistant: {get_final_answer(result)}")
