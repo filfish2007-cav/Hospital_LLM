@@ -11,9 +11,18 @@ st.set_page_config(page_title="Омега-Мед assistant", page_icon="🏥")
 
 st.title("🏥 Омега-Мед assistant")
 st.caption(
-    "Ask about hospital data, patients, visits, medications, procedures, statistics, "
-    "internal policies, and documents. You can also request charts and visualizations. "
-    "The assistant does not provide medical diagnoses or treatment recommendations."
+    """
+**💬 You can ask about:**
+
+- Patients and visits
+- Medications, diagnoses, and procedures
+- Hospital statistics and data analysis
+- Charts and visualizations
+- Hospital policies and internal documents
+- Equipment, departments, and information systems
+
+⚠️ *This assistant does not provide medical diagnoses or treatment recommendations.*
+"""
 )
 
 # ---------------------------------------------------------
