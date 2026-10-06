@@ -10,7 +10,11 @@ from agent import hospital_agent, get_final_answer
 st.set_page_config(page_title="Омега-Мед assistant", page_icon="🏥")
 
 st.title("🏥 Омега-Мед assistant")
-st.caption("Ask about hospital data, charts, documents or employee rules")
+st.caption(
+    "Ask about hospital data, patients, visits, medications, procedures, statistics, "
+    "internal policies, and documents. You can also request charts and visualizations. "
+    "The assistant does not provide medical diagnoses or treatment recommendations."
+)
 
 # ---------------------------------------------------------
 # history of the chat (global memory in streamlit)
