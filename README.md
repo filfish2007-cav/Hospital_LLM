@@ -10,7 +10,7 @@
 ![Streamlit](https://img.shields.io/badge/Streamlit-UI-FF4B4B?logo=streamlit&logoColor=white)
 
 <!-- TODO: replace with a real GIF/screenshot and your live link -->
-> **🔗 Live demo:** `https://YOUR-APP.streamlit.app`
+> **🔗 Live demo:** `https://hospitalllm-rcttxruzkbigz4dnmp5mbr.streamlit.app`
 >
 > ![demo](docs/demo.gif)
 
