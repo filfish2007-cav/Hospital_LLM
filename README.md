@@ -1,325 +1,216 @@
-# 🏥 Hospital AI Intelligence Platform
+# 🏥 Hospital AI Assistant
 
-> An AI-first hospital assistant that answers questions from structured hospital data and hospital documents through one Streamlit interface.
+**Ask a hospital's database and its documents in plain language. One agent, three tools, grounded answers.**
 
-The Hospital AI Intelligence Platform combines Gemini, LangChain, Supabase PostgreSQL, Pinecone, and Streamlit. Its agent has **two tools only**:
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
+![LangChain](https://img.shields.io/badge/LangChain-agent-1C3C3C)
+![Gemini](https://img.shields.io/badge/Google-Gemini-4285F4?logo=google&logoColor=white)
+![Postgres](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase&logoColor=white)
+![Pinecone](https://img.shields.io/badge/Pinecone-vector%20DB-000000)
+![Streamlit](https://img.shields.io/badge/Streamlit-UI-FF4B4B?logo=streamlit&logoColor=white)
 
-- **SQL tool** — queries the structured hospital database in Supabase.
-- **RAG tool** — retrieves relevant hospital-document content from Pinecone.
-
-The agent selects the right tool for a question, or uses both when the answer needs both database facts and document context.
-
----
-
-## ✨ What Can It Do?
-
-### 📊 Structured hospital data — SQL tool
-
-The cleaned hospital CSVs are loaded into **Supabase PostgreSQL**. The SQL tool can answer database questions about patients, encounters, conditions, medications, observations, and procedures.
-
-Examples:
-
-> "What medications was patient X prescribed?"
-
-> "How many emergency encounters are in the dataset?"
-
-> "What are the most common recorded conditions?"
-
-### 📄 Hospital documents — RAG tool
-
-Hospital documents are chunked, embedded, and stored in **Pinecone**. The RAG tool retrieves relevant passages before the model answers questions about policies and hospital information.
-
-Examples:
-
-> "What are the hospital visiting hours?"
-
-> "What is the policy for emergency admissions?"
-
-### 🔀 Questions that need both tools
-
-Some questions combine a fact from the database with policy information from documents.
-
-> "What encounters did patient X have, and what is the relevant follow-up policy?"
-
-The agent can query Supabase for the encounter data, retrieve the policy from Pinecone, and produce one grounded answer.
+<!-- TODO: replace with a real GIF/screenshot and your live link -->
+> **🔗 Live demo:** `https://YOUR-APP.streamlit.app`
+>
+> ![demo](docs/demo.gif)
 
 ---
 
-## 🧠 Architecture
+## The idea
 
-```text
-                         USER
-                           │
-                           ▼
-                    ┌────────────┐
-                    │ Streamlit  │
-                    │   app.py   │
-                    └─────┬──────┘
-                          │
-                          ▼
-                    ┌────────────┐
-                    │ Gemini /   │
-                    │ LangChain  │
-                    │   Agent    │
-                    └─────┬──────┘
-                          │
-             ┌────────────┴────────────┐
-             ▼                         ▼
-       ┌──────────┐               ┌──────────┐
-       │ SQL Tool │               │ RAG Tool │
-       └────┬─────┘               └────┬─────┘
-            ▼                          ▼
-     Supabase PostgreSQL             Pinecone
-     structured hospital data      hospital documents
-```
+A hospital keeps its knowledge in two very different places:
 
-The agent does not use a separate analytics tool. It routes every request to the SQL tool, the RAG tool, or both.
+- **Records** (patients, visits, diagnoses, prescriptions) live in a relational database.
+- **Rules and descriptions** (equipment, IT systems, safety protocols, employee handbook) live in PDFs and Word files.
 
----
+Staff need both, and normally they need a different tool for each. This project puts a single chat in front of them. The LLM decides, per question, whether to **query the database**, **search the documents**, **draw a chart**, or **combine sources**. It answers only from what the tools return.
 
-## 🔍 Example Interactions
+## What you can ask
 
-| User request | Tool route |
+| You ask | The agent does |
 |---|---|
-| "What are the visiting hours?" | RAG / Pinecone |
-| "How many emergency encounters are there?" | SQL / Supabase |
-| "What medications was this patient prescribed?" | SQL / Supabase |
-| "What is the follow-up policy for this patient's condition?" | SQL + RAG |
-| "Which procedures are recorded for patient X?" | SQL / Supabase |
+| *"How many emergency encounters are there?"* | Writes SQL → runs it on Postgres → answers with the number |
+| *"Show encounters per year as a chart"* | Writes SQL → builds an interactive Plotly chart |
+| *"How are new employees onboarded?"* | Searches the handbook in Pinecone → answers with the source section |
+| *"How many MRI-related procedures were done, and what MRI do we use?"* | Uses **both** SQL and documents, and says which part came from where |
+| *"Hi!"* / *"Should I take ibuprofen?"* | Replies politely, or declines medical advice. No tool call |
+
+<!-- TODO: add 2-3 screenshots here -->
 
 ---
 
-## 🏗️ Project Structure
+## How it works
 
-```text
-hospital-ai/
-│
-├── app.py                       # Streamlit application
-├── agent.py                     # Gemini/LangChain AI agent
-├── tools.py                     # SQL and RAG tools available to the agent
-├── sql_db.py                    # Supabase/PostgreSQL connection
-├── vector_db.py                 # Pinecone document ingestion
-│
-├── database_analysis.ipynb      # Data cleaning & exploratory analysis
-│
-├── data/
-│   ├── hospital/                 # Hospital documents
-│   └── csv/                      # Structured hospital datasets
-│
-├── vector_ids.json              # Vector/source metadata
-│
-├── requirements.txt
-├── .env                         # Local secrets
-├── .gitignore
-└── README.md
+```mermaid
+flowchart TD
+    U([User]) --> UI[Streamlit chat<br/>app.py]
+    UI --> A{{Gemini agent<br/>LangChain · agent.py}}
+    A -->|records & statistics| T1[query_hospital_database]
+    A -->|trends & distributions| T2[create_hospital_chart]
+    A -->|rules & descriptions| T3[search_hospital_documents]
+    T1 --> DB[(Supabase<br/>PostgreSQL)]
+    T2 --> DB
+    T3 --> VDB[(Pinecone<br/>hospital docs)]
+    DB --> A
+    VDB --> A
+    A --> UI
 ```
 
-### Separation of responsibilities
+**The routing is done by the model, not by `if/else` keyword rules.** The system prompt teaches one distinction: *is the user asking about what is **recorded** (data) or what is **written** (rules)?* Guardrails in the prompt: no answers from general knowledge, at most 3 document searches per question, one clarifying question if the source is truly unclear, and no medical advice.
 
-**`app.py`**  
-The Streamlit chat interface.
+### The three tools
 
-**`agent.py`**  
-The central orchestration layer. It decides whether a question needs SQL, RAG, or both.
-
-**`tools.py`**  
-Defines the two tools exposed to the agent: one for SQL database queries and one for document retrieval.
-
-**`sql_db.py`**  
-Connects the SQL tool to the Supabase PostgreSQL database.
-
-**`vector_db.py`**  
-Processes hospital documents and stores their embeddings in Pinecone.
-
-**`database_analysis.ipynb`**  
-Cleans, validates, explores, and exports the original hospital datasets before they are loaded into Supabase.
+| Tool | Source | What it does |
+|---|---|---|
+| `query_hospital_database` | Supabase PostgreSQL | Runs a validated, read-only SQL query and returns the rows |
+| `create_hospital_chart` | Supabase PostgreSQL | Runs a read-only query and returns a Plotly figure (bar, line, pie, scatter, histogram) |
+| `search_hospital_documents` | Pinecone | Semantic search over the documents (top 5 sections), returned with file and section name |
 
 ---
 
-## 🛠️ Tech Stack
+## Data
 
-| Technology | Purpose |
-|---|---|
-| **Python** | Core application |
-| **Google Gemini** | Natural-language reasoning and final responses |
-| **LangChain** | Agent and two-tool orchestration |
-| **Supabase / PostgreSQL** | Structured hospital data and SQL queries |
-| **Pinecone** | Vector search over hospital documents |
-| **Pandas** | Dataset cleaning and validation |
-| **Streamlit** | User interface |
+Everything in the repo is **synthetic**. No real patients.
 
----
+**Structured data** is a [Synthea](https://github.com/synthetichealth/synthea)-style export: 6 tables (`patients`, `encounters`, `conditions`, `medications`, `observations`, `procedures`), roughly 160k rows in total, dominated by observations. The notebook [`DataCleaning_EDA.ipynb`](DataCleaning_EDA.ipynb) audits and cleans it: key and foreign-key checks, duplicate removal, date-order and code consistency, numeric sanity ranges, privacy review, and a focused EDA. Then it exports CSVs ready for Postgres.
 
-## 🔄 Data Pipeline
+**Documents** are two Ukrainian-language files for the fictional center "Омега-Мед":
 
-### Structured data
+- `general.pdf`: the center, its systems, equipment, maintenance, safety and quality (5 sections)
+- `for_workers.docx`: the employee handbook, from hiring to termination (12 sections)
 
-```text
-Raw hospital CSVs
-      ↓
-Cleaning & validation notebook
-      ↓
-Cleaned CSVs
-      ↓
-Supabase PostgreSQL
-      ↓
-SQL tool
-      ↓
-Gemini agent
-```
-
-### Hospital documents
-
-```text
-PDF / DOCX documents
-      ↓
-vector_db.py
-      ↓
-Text extraction and chunking
-      ↓
-Embeddings
-      ↓
-Pinecone
-      ↓
-RAG tool
-      ↓
-Gemini agent
-```
+Documents are split by numbered section, embedded with `gemini-embedding-001`, and stored in a cosine-metric Pinecone index.
 
 ---
 
-## 🔐 Configuration
+## Quickstart
 
-Create a `.env` file in the project root:
-
-```env
-GEMINI_API_KEY=your_gemini_api_key
-PINECONE_API_KEY=your_pinecone_api_key
-PINECONE_INDEX_NAME=your_index_name
-SUPABASE_DATABASE_URL=your_database_url
-```
-
-> Never commit `.env` or API keys to GitHub.
-
----
-
-## 🚀 Getting Started
-
-### 1. Clone the repository
+**Prerequisites:** Python 3.11+, a [Gemini API key](https://aistudio.google.com/apikey), a [Pinecone](https://www.pinecone.io/) account, a [Supabase](https://supabase.com/) project.
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/filfish2007-cav/Hospital_LLM.git
 cd Hospital_LLM
-```
-
-### 2. Create and activate a virtual environment
-
-```bash
-python -m venv .venv
-```
-
-**macOS / Linux**
-
-```bash
-source .venv/bin/activate
-```
-
-**Windows**
-
-```bash
-.venv\Scripts\activate
-```
-
-### 3. Install dependencies
-
-```bash
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+cp .env.example .env                                # then fill in your keys
 ```
 
-### 4. Configure environment variables
+### 1. Prepare the database
 
-Copy `.env.example` to `.env`, then add the required keys and database connection string.
+1. Run `DataCleaning_EDA.ipynb` and export the cleaned CSVs.
+2. In Supabase, create the six tables and import the CSVs (Table Editor → Import, or `\copy` via `psql`).
+3. Create a **read-only role** for the app (see [Safety](#-safety)).
 
-### 5. Prepare the data sources
+### 2. Index the documents
 
-Before starting the app:
+```bash
+python vector_db.py
+```
 
-1. Run the cleaning notebook and export the cleaned hospital CSVs.
-2. Create the Supabase schema and import the cleaned CSVs.
-3. Run document ingestion to populate the Pinecone index.
+Creates the `hospital-docs` index if needed (3072 dimensions, cosine) and uploads the document sections. Run it once, not on every app start. Re-running adds duplicate vectors, so clear the index first if you re-ingest.
 
-### 6. Run the application
+### 3. Run the app
 
 ```bash
 streamlit run app.py
 ```
 
----
+### Configuration
 
-## 🧪 Example Questions
-
-### Document knowledge
-
-> What are the hospital visiting hours?
-
-### Database knowledge
-
-> How many inpatient encounters are recorded?
-
-> What conditions are most common in the dataset?
-
-### Combined knowledge
-
-> What medication did patient X receive, and what does the hospital policy say about follow-up?
+| Variable | Purpose |
+|---|---|
+| `GEMINI_API_KEY` | Chat model and embeddings |
+| `PINECONE_API_KEY` | Vector database |
+| `SUPABASE_DATABASE_URL` | SQLAlchemy URL, e.g. `postgresql+psycopg2://user:pass@host:5432/postgres?sslmode=require` |
+| `GEMINI_MODEL` | *(optional)* override the default chat model |
 
 ---
 
-## 🎯 Design Goals
+## ☁️ Deploy on Streamlit Community Cloud
 
-- Retrieval-Augmented Generation (RAG)
-- Tool-using AI agents
-- Natural-language SQL
-- Relational database design
-- Data cleaning and validation
-- Grounded responses from structured and unstructured sources
-- Modular software architecture
-- LLM integration with external data sources
+1. Push the repo to GitHub.
+2. On [share.streamlit.io](https://share.streamlit.io) choose **Create app**, pick this repo, branch `main`, file `app.py`.
+3. Under **Advanced settings → Secrets**, paste the variables above as top-level TOML keys:
 
-The goal is not just a chatbot. It is a practical example of an LLM acting as an interface to a relational database and a document knowledge base.
+   ```toml
+   GEMINI_API_KEY = "..."
+   PINECONE_API_KEY = "..."
+   SUPABASE_DATABASE_URL = "postgresql+psycopg2://..."
+   ```
+4. Use Supabase's **pooler** connection string, since Streamlit Cloud connects over IPv4.
 
----
-
-## 🔒 Security & Reliability
-
-- API keys stay outside source control in `.env`.
-- Structured data and document knowledge remain separate sources.
-- The agent uses retrieved SQL results and document passages to ground its answers.
-- Normal user questions are read-only; they do not modify hospital data.
-- The application should clearly say when the available data cannot support an answer.
+Every `git push` to `main` redeploys the app automatically.
 
 ---
 
-## 🚧 Project Status
+## 🔒 Safety
 
-- [x] Clean and validate hospital datasets
-- [ ] Load the cleaned relational data into Supabase
-- [ ] Implement Pinecone document ingestion
-- [ ] Implement the RAG tool
-- [ ] Implement the SQL tool
-- [ ] Integrate the Gemini/LangChain agent
-- [ ] Build the Streamlit interface
-- [ ] Test SQL-only, RAG-only, and combined questions
-- [ ] Deploy the application
+An agent that writes its own SQL is a risk surface, so there are several layers:
+
+- **Query validation.** Only a single `SELECT`/`WITH` statement passes. Write/DDL keywords, comments and multiple statements are rejected before execution.
+- **Read-only database role (recommended, required for a public deployment).** The validator is a second line of defense. The first should be the database itself:
+
+  ```sql
+  create role hospital_reader login password '<generated>';
+  alter role hospital_reader set default_transaction_read_only = on;
+  alter role hospital_reader set statement_timeout = '10s';
+  grant usage on schema public to hospital_reader;
+  grant select on public.encounters, public.conditions, public.medications,
+                  public.observations, public.procedures to hospital_reader;
+  -- patients: grant column-level access, excluding SSN / drivers / passport
+  ```
+- **Grounded answers.** The prompt forbids answers from the model's own knowledge. If the tools return nothing, the agent says so.
+- **Scope limits.** Medical advice, diagnoses and off-topic requests are declined.
+- **Secrets** stay in `.env` / Streamlit Secrets, never in git.
+
+> The dataset is synthetic. A real deployment would also need authentication, audit logging and compliance work (GDPR/HIPAA).
 
 ---
 
-## 📌 Project Goal
+## Project structure
 
-Build one hospital intelligence interface where users can ask natural-language questions and receive answers grounded in either the hospital database, hospital documents, or both.
+```text
+Hospital_LLM/
+├── app.py                  # Streamlit chat UI: history, charts, tool badges
+├── agent.py                # Gemini model, system prompt, agent assembly
+├── tools.py                # The 3 tools + SQL validation
+├── sql_db.py               # SQLAlchemy engine + LangChain SQLDatabase
+├── vector_db.py            # One-off ingestion: docs → sections → embeddings → Pinecone
+├── DataCleaning_EDA.ipynb  # Data audit, cleaning, EDA, CSV export
+├── data/
+│   ├── hospital_csvs/      # Structured data
+│   └── hospital_docs/      # PDF/DOCX sources + ingested vector IDs
+├── requirements.txt
+└── .env.example
+```
 
-> Ask a question. Let the agent choose SQL, RAG, or both—and answer using the right evidence.
+---
 
-### Author
+## Known limitations
 
-**Filip Rybkin**  
-AI / Data / Software Engineering Project
+- **Section-level chunking.** Each document section is one vector. Long sections dilute the embedding and cost more context tokens. Smaller overlapping chunks are the planned fix.
+- **Ingestion is not idempotent.** Vector IDs are random, so re-running `vector_db.py` duplicates entries.
+- **Text-to-SQL is probabilistic.** Complex joins can still go wrong, and there is no automated accuracy measurement yet.
+- **Documents are Ukrainian only.** The agent translates the search query, which can lose precision.
+- **No authentication or rate limiting** in the app itself.
+
+## Roadmap
+
+- [x] Data audit, cleaning and EDA notebook
+- [x] Text-to-SQL tool with query validation
+- [x] Chart generation tool (Plotly)
+- [x] RAG over PDF/DOCX with Pinecone
+- [x] Streamlit chat with history and tool badges
+- [ ] Evaluation set (tool routing + SQL correctness) with published scores
+- [ ] Read-only DB role + enforced `LIMIT` on every query
+- [ ] Overlapping chunks and idempotent ingestion
+- [ ] Schema injection into the prompt, with few-shot SQL examples
+- [ ] Response streaming and tracing (Langfuse / LangSmith)
+- [ ] Tests and CI
+
+---
+
+## Author
+
+**Filip Rybkin**, built as a hands-on project in LLM agents, RAG and natural-language SQL.
+[LinkedIn](https://www.linkedin.com/in/YOUR-PROFILE) · [GitHub](https://github.com/filfish2007-cav)
