@@ -9,7 +9,7 @@
 ![Pinecone](https://img.shields.io/badge/Pinecone-vector%20DB-000000)
 ![Streamlit](https://img.shields.io/badge/Streamlit-UI-FF4B4B?logo=streamlit&logoColor=white)
 
-<!-- TODO: replace with a real GIF/screenshot and your live link -->
+<!-- TODO: replace with a real GIF/screenshot -->
 > **🔗 Live demo:** `https://hospitalllm-rcttxruzkbigz4dnmp5mbr.streamlit.app`
 >
 > ![demo](docs/demo.gif)
@@ -23,17 +23,57 @@ A hospital keeps its knowledge in two very different places:
 - **Records** (patients, visits, diagnoses, prescriptions) live in a relational database.
 - **Rules and descriptions** (equipment, IT systems, safety protocols, employee handbook) live in PDFs and Word files.
 
-Staff need both, and normally they need a different tool for each. This project puts a single chat in front of them. The LLM decides, per question, whether to **query the database**, **search the documents**, **draw a chart**, or **combine sources**. It answers only from what the tools return.
+People need both, and normally they need a different tool for each. This project puts a single chat in front of them. The LLM decides, per question, whether to **query the database**, **search the documents**, **draw a chart**, or **combine sources**. It answers only from what the tools return.
+
+## Who is it for?
+
+This is an **operational assistant for hospital staff and management**, not a clinical decision tool.
+
+| Who | What they need | Where the answer comes from |
+|---|---|---|
+| **Managers & analysts** | Workload, trends, costs, case mix | Database + charts |
+| **Clinicians & nurses** (lookup only) | A patient's recorded conditions, medications, procedures | Database |
+| **New employees & HR** | Onboarding, working hours, leave, internal rules | Documents |
+| **IT, facilities & quality teams** | Information systems, equipment, maintenance, safety protocols | Documents |
 
 ## What you can ask
 
-| You ask | The agent does |
+Not sure where to start? Try any of these. You can ask in any language, and the agent picks the source itself.
+
+### 📊 Management & analytics
+
+| Question | Why someone asks it |
 |---|---|
-| *"How many emergency encounters are there?"* | Writes SQL → runs it on Postgres → answers with the number |
-| *"Show encounters per year as a chart"* | Writes SQL → builds an interactive Plotly chart |
-| *"How are new employees onboarded?"* | Searches the handbook in Pinecone → answers with the source section |
-| *"How many MRI-related procedures were done, and what MRI do we use?"* | Uses **both** SQL and documents, and says which part came from where |
-| *"Hi!"* / *"Should I take ibuprofen?"* | Replies politely, or declines medical advice. No tool call |
+| *"How many encounters per month in 2023?"* (returns a line chart) | Staffing and capacity planning |
+| *"Which encounter types are the most common?"* | Understanding the case mix: emergency vs. inpatient vs. outpatient |
+| *"Average claim cost by encounter type"* | Budget and cost control |
+| *"Top 10 most common conditions"* | Spotting what the hospital treats most |
+
+### 🩺 Patient record lookup
+
+| Question | Why someone asks it |
+|---|---|
+| *"What medications has patient X been prescribed?"* | Quick history check before a visit |
+| *"Which procedures are recorded for patient X?"* | Reviewing past care |
+
+### 📄 Staff & operations (from internal documents)
+
+| Question | Why someone asks it |
+|---|---|
+| *"How does onboarding work for a new employee?"* | New hires find the rules without interrupting HR |
+| *"How do I request leave?"* | Self-service for routine HR questions |
+| *"What MRI equipment do we have and how is it maintained?"* | Facilities and equipment staff |
+| *"What are the safety and quality protocols?"* | Compliance and audit preparation |
+
+### 🔀 Both sources in one answer
+
+*"How many MRI-related procedures were done, and what MRI machine do we use?"* The agent queries the database, searches the documents, and states which part of the answer came from where.
+
+### 🚫 What it will not do
+
+- **Medical advice.** Questions like *"Should I take ibuprofen?"* or *"How should I treat this patient?"* are politely declined with a pointer to a doctor. This is intentional: the assistant only reports what is recorded in the hospital's own data and documents, and it is not a validated clinical tool.
+- **Anything outside its data.** If the database and documents don't contain the answer, it says so instead of guessing.
+- **Changing data.** Access is read-only.
 
 <!-- TODO: add 2-3 screenshots here -->
 
@@ -73,6 +113,23 @@ flowchart TD
 Everything in the repo is **synthetic**. No real patients.
 
 **Structured data** is a [Synthea](https://github.com/synthetichealth/synthea)-style export: 6 tables (`patients`, `encounters`, `conditions`, `medications`, `observations`, `procedures`), roughly 160k rows in total, dominated by observations. The notebook [`DataCleaning_EDA.ipynb`](DataCleaning_EDA.ipynb) audits and cleans it: key and foreign-key checks, duplicate removal, date-order and code consistency, numeric sanity ranges, privacy review, and a focused EDA. Then it exports CSVs ready for Postgres.
+
+### What is an "encounter"?
+
+An **encounter** is one interaction between a patient and the healthcare system: a check-up, a clinic visit, an emergency call, a hospital stay. Every condition, medication, observation and procedure is linked to the encounter in which it was recorded. Encounters come in several classes:
+
+| Class | Meaning |
+|---|---|
+| `wellness` | Preventive check-up |
+| `ambulatory` | Scheduled outpatient visit |
+| `outpatient` | Clinic visit |
+| `urgentcare` | Walk-in urgent care |
+| `emergency` | Emergency department or ambulance |
+| `inpatient` | Hospital admission |
+| `snf` | Skilled nursing facility stay |
+| `hospice` | End-of-life care |
+
+So "how many encounters per month" is a workload metric, and "emergency encounters" means emergency-class visits only.
 
 **Documents** are two Ukrainian-language files for the fictional center "Омега-Мед":
 
@@ -201,6 +258,7 @@ Hospital_LLM/
 - [x] Chart generation tool (Plotly)
 - [x] RAG over PDF/DOCX with Pinecone
 - [x] Streamlit chat with history and tool badges
+- [ ] Starter-question buttons in the UI so users can discover what the bot can do
 - [ ] Evaluation set (tool routing + SQL correctness) with published scores
 - [ ] Read-only DB role + enforced `LIMIT` on every query
 - [ ] Overlapping chunks and idempotent ingestion
