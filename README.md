@@ -131,6 +131,23 @@ An **encounter** is one interaction between a patient and the healthcare system:
 
 So "how many encounters per month" is a workload metric, and "emergency encounters" means emergency-class visits only.
 
+### The other tables
+
+Every table links back to a patient, and almost all of them to an encounter, so any question can be traced from a person to a visit to what happened during it.
+
+| Table | One row is... | What it tells you |
+|---|---|---|
+| `patients` | One person | Demographics (birth and death date, gender, race, location), plus lifetime healthcare expenses, coverage and income |
+| `encounters` | One visit or stay | When it happened, its class (see above), cost, and the reason for the visit |
+| `conditions` | One diagnosis for one patient | What was diagnosed and when. An empty `stop` date means the condition is still ongoing |
+| `medications` | One prescription | The drug and dose, start and stop date, cost, how many times it was dispensed, and why it was prescribed |
+| `procedures` | One medical procedure | What was done (surgery, screening, measurement), when, its cost, and the reason |
+| `observations` | One measurement or answer | A single value with units, such as a lab result, a vital sign, a survey answer or a social-history fact |
+
+`observations` is by far the biggest table (over 100k rows). Its `category` splits it into `laboratory`, `vital-signs`, `survey`, `social-history`, `exam` and `imaging`, which is useful when a question is about, say, blood pressure and not about lab tests.
+
+Diagnoses, drugs and procedures are stored with standard medical codes (SNOMED CT and similar) next to a readable `description`, and the agent works with the description. The `description` text often carries a suffix such as "(disorder)" or "(procedure)", which is why the agent should match on part of the text and not on an exact string.
+
 **Documents** are two Ukrainian-language files for the fictional center "Омега-Мед":
 
 - `general.pdf`: the center, its systems, equipment, maintenance, safety and quality (5 sections)
