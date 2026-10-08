@@ -9,6 +9,7 @@ from langchain_core.tools import tool
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone
+from langchain_core.tools import tool, ToolException
 
 from sql_db import engine, get_sql_database
 
@@ -58,7 +59,11 @@ def query_hospital_database(sql_query: str) -> str:
     SQL using only tables and columns returned by the database schema.
     """
     query = _validate_read_only_query(sql_query)
-    return str(get_sql_database().run(query))
+    try:
+        return str(get_sql_database().run(query))
+    except Exception as e:
+        raise ToolException(f"SQL error: {str(e).splitlines()[0]}. Fix the query and retry.")
+
 
 
 def _pretty(name: str) -> str:
@@ -89,6 +94,13 @@ def create_hospital_chart(
     COLUMN ROLES, CHART TYPES sections and the encounters-by-type example>
     """
     query = _validate_read_only_query(sql_query)
+    try:
+        df = pd.read_sql_query(query, engine)
+    except Exception as e:
+        raise ToolException(
+            f"SQL error: {str(e).splitlines()[0]}. Check column names "
+            f"against the DATABASE SCHEMA and retry."
+        )
     df = pd.read_sql_query(query, engine)
 
     if df.empty:
