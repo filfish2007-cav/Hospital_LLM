@@ -231,4 +231,5 @@ HOSPITAL_TOOLS = [
     search_hospital_documents,
 ]
 
-
+for _t in HOSPITAL_TOOLS:
+    _t.handle_tool_error = True
