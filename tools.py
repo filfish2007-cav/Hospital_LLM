@@ -61,8 +61,12 @@ def query_hospital_database(sql_query: str) -> str:
     return str(get_sql_database().run(query))
 
 
+def _pretty(name: str) -> str:
+    return name.replace("_", " ").strip().capitalize()
+
+
 def _to_numeric_if_possible(series: pd.Series) -> pd.Series:
-    """Postgres SUM/AVG return Decimal (dtype=object); convert to float/int."""
+    """Postgres SUM/AVG return Decimal (dtype=object); convert to numbers."""
     if series.dtype == object:
         try:
             return pd.to_numeric(series)
@@ -81,46 +85,8 @@ def create_hospital_chart(
     barmode: Literal["stack", "group"] = "stack",
     title: str = "",
 ) -> str:
-    """Run a read-only SQL query and build a Plotly chart from its result.
-
-    HOW TO CALL
-    1. Write SQL that returns ONE ROW PER DATA POINT, with meaningful
-       column names you choose yourself (e.g. year, encounter_type,
-       encounter_count). Always alias aggregates: COUNT(*) AS encounter_count.
-    2. Pass those exact result-column names in x_column / y_column /
-       color_column. NEVER use the literal words "x_column", "y_column"
-       or "color_column" as SQL aliases.
-
-    COLUMN ROLES
-    - x_column: the horizontal axis (time period or category).
-    - y_column: a NUMERIC column (a count, sum or average). Required for
-      bar, line, pie and scatter. Never put a text column here.
-    - color_column: optional. Use it when the question has a second
-      dimension, e.g. "encounters by type per year": x=year,
-      y=encounter_count, color=encounter_type. The query then returns
-      THREE columns: year, encounter_type, encounter_count.
-    - barmode: "stack" (parts of a total) or "group" (side by side
-      comparison). Only used for bar charts with color_column.
-
-    CHART TYPES
-    - bar: comparing categories, or categories over periods (with color_column).
-    - line: a trend over time. Use color_column for several lines.
-    - pie: shares of a whole (x = category, y = numeric). Max ~8 slices.
-    - scatter: relationship of two numeric columns (x and y both numeric).
-    - histogram: distribution of one numeric column (only x_column).
-
-    Always ORDER BY the x-axis (e.g. ORDER BY year) so the chart is sorted.
-
-    Example, "encounters by type per year":
-      sql_query = "SELECT EXTRACT(YEAR FROM start)::int AS year,
-                          encounter_class AS encounter_type,
-                          COUNT(*) AS encounter_count
-                   FROM encounters GROUP BY 1, 2 ORDER BY 1, 2"
-      chart_type="bar", x_column="year", y_column="encounter_count",
-      color_column="encounter_type", barmode="group"
-
-    Returns a Plotly figure as JSON. If it returns an error, fix the SQL or
-    the column names and call the tool again.
+    """<paste the full docstring from my earlier message here: the HOW TO CALL,
+    COLUMN ROLES, CHART TYPES sections and the encounters-by-type example>
     """
     query = _validate_read_only_query(sql_query)
     df = pd.read_sql_query(query, engine)
@@ -140,38 +106,46 @@ def create_hospital_chart(
 
     df = df.apply(_to_numeric_if_possible)
 
-    needs_y = chart_type in ("bar", "line", "pie", "scatter")
-    if needs_y and not y_column:
+    if chart_type in ("bar", "line", "pie", "scatter") and not y_column:
         raise ValueError(f"{chart_type} charts require y_column (a numeric column).")
     if y_column and not pd.api.types.is_numeric_dtype(df[y_column]):
         raise ValueError(
-            f"y_column='{y_column}' is not numeric (values like "
-            f"{df[y_column].iloc[0]!r}). y must be a count/sum/average. "
-            f"If '{y_column}' is a category, make it color_column and add "
+            f"y_column='{y_column}' is not numeric (e.g. {df[y_column].iloc[0]!r}). "
+            f"If it is a category, make it color_column and add "
             f"COUNT(*) AS <name> as y_column."
         )
     if chart_type == "scatter" and not pd.api.types.is_numeric_dtype(df[x_column]):
         raise ValueError("scatter charts need a numeric x_column.")
 
-    # Years as integers would get fractional ticks (2021.5) on a line/bar axis.
+    # integer years would get ticks like 2021.5 on bar/line axes
     if chart_type in ("bar", "line") and pd.api.types.is_integer_dtype(df[x_column]):
         df[x_column] = df[x_column].astype(str)
 
     color = color_column or None
     chart_title = title or "Hospital data"
+    labels = {c: _pretty(c) for c in (x_column, y_column, color_column) if c}
 
     if chart_type == "bar":
-        fig = px.bar(df, x=x_column, y=y_column, color=color,
-                     barmode=barmode, title=chart_title)
+        long_names = not color and df[x_column].astype(str).str.len().max() > 18
+        if long_names:  # horizontal bars keep long category names readable
+            fig = px.bar(df, x=y_column, y=x_column, orientation="h",
+                         labels=labels, title=chart_title)
+            fig.update_yaxes(categoryorder="total ascending")
+        else:
+            fig = px.bar(df, x=x_column, y=y_column, color=color,
+                         barmode=barmode, labels=labels, title=chart_title)
     elif chart_type == "line":
-        fig = px.line(df, x=x_column, y=y_column, color=color,
-                      markers=True, title=chart_title)
+        fig = px.line(df, x=x_column, y=y_column, color=color, markers=True,
+                      labels=labels, title=chart_title)
     elif chart_type == "pie":
-        fig = px.pie(df, names=x_column, values=y_column, title=chart_title)
+        fig = px.pie(df, names=x_column, values=y_column,
+                     labels=labels, title=chart_title)
     elif chart_type == "scatter":
-        fig = px.scatter(df, x=x_column, y=y_column, color=color, title=chart_title)
+        fig = px.scatter(df, x=x_column, y=y_column, color=color,
+                         labels=labels, title=chart_title)
     else:  # histogram
-        fig = px.histogram(df, x=x_column, color=color, title=chart_title)
+        fig = px.histogram(df, x=x_column, color=color,
+                           labels=labels, title=chart_title)
 
     return fig.to_json()
 
