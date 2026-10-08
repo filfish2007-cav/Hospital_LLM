@@ -1,5 +1,8 @@
 import os
 from typing import Any
+from sqlalchemy import inspect
+from sql_db import engine
+
 
 from dotenv import load_dotenv
 from langchain.agents import create_agent
@@ -175,6 +178,19 @@ When the user asks for a chart, follow these steps:
   returned it.
 """
 
+SCHEMA_TABLES = ["patients", "encounters", "conditions",
+                 "medications", "observations", "procedures"]
+
+def build_schema_text() -> str:
+    insp = inspect(engine)
+    lines = []
+    for table in SCHEMA_TABLES:
+        cols = ", ".join(
+            f"{c['name']} ({c['type']})"
+            for c in insp.get_columns(table, schema="public")
+        )
+        lines.append(f"- {table}: {cols}")
+    return "\n".join(lines)
 
 def _create_agent():
     """Create the Gemini agent with the shared hospital tools."""
