@@ -199,7 +199,9 @@ def _create_agent():
     return create_agent(
         model=model,
         tools=HOSPITAL_TOOLS,
-        system_prompt=SYSTEM_PROMPT,
+        system_prompt=SYSTEM_PROMPT
+                      + "\n\n## DATABASE SCHEMA (use ONLY these tables and columns)\n"
+                      + build_schema_text(),
         name="hospital_agent",
     )
 
