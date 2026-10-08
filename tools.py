@@ -62,7 +62,10 @@ def query_hospital_database(sql_query: str) -> str:
     try:
         return str(get_sql_database().run(query))
     except Exception as e:
-        raise ToolException(f"SQL error: {str(e).splitlines()[0]}. Fix the query and retry.")
+        raise ToolException(
+            f"SQL error: {str(e).splitlines()[0]}. Check column names "
+            f"against the DATABASE SCHEMA and retry."
+        )
 
 
 
@@ -90,8 +93,62 @@ def create_hospital_chart(
     barmode: Literal["stack", "group"] = "stack",
     title: str = "",
 ) -> str:
-    """<paste the full docstring from my earlier message here: the HOW TO CALL,
-    COLUMN ROLES, CHART TYPES sections and the encounters-by-type example>
+    """Run a read-only SQL query on the hospital database and draw a chart
+    from its result.
+
+    HOW TO CALL
+    1. Write SQL that returns ONE ROW PER DATA POINT, with descriptive column
+       aliases that you choose yourself (year, encounter_type,
+       encounter_count). Always alias aggregates, e.g. COUNT(*) AS
+       encounter_count.
+    2. Pass those exact aliases as x_column, y_column and color_column.
+       NEVER use the literal words x_col, y_col, x_column, y_column or
+       color_column as SQL aliases.
+    3. Use only tables and columns from the DATABASE SCHEMA in the system
+       prompt. Never guess a column name.
+
+    COLUMN ROLES
+    - x_column: the horizontal axis (a time period or a category).
+    - y_column: a NUMERIC column (count, sum, average). Required for bar,
+      line, pie and scatter. Never put a text column here.
+    - color_column: optional second dimension. Use it when the question has
+      two dimensions, e.g. "encounters by type per year": x = year,
+      y = encounter_count, color = encounter_type. The query then returns
+      THREE columns: year, encounter_type, encounter_count.
+    - barmode: "group" (bars side by side, good for comparing) or "stack"
+      (parts of a total). Used only for bar charts with color_column.
+
+    CHART TYPES
+    - bar: categories, or categories over periods (with color_column).
+    - line: a trend over time. Use color_column for several lines.
+    - pie: shares of a whole (x = category, y = number). Max about 8 slices.
+    - scatter: two numeric columns (x and y both numeric).
+    - histogram: distribution of one numeric column (only x_column).
+
+    RULES
+    - Always ORDER BY the x-axis (for example ORDER BY year).
+    - If the question mentions a time range, the period must be a column of
+      the result. Do not collapse time into a single total.
+    - "Top N categories over a period": first select the top N categories
+      over the whole period in a CTE, then break only those down by period.
+
+    EXAMPLE: "encounters by type for each of the last 5 years"
+      sql_query = "WITH top_types AS (
+                     SELECT encounter_class FROM encounters
+                     WHERE start >= date_trunc('year', now()) - interval '4 years'
+                     GROUP BY encounter_class ORDER BY COUNT(*) DESC LIMIT 5)
+                   SELECT EXTRACT(YEAR FROM e.start)::int AS year,
+                          e.encounter_class AS encounter_type,
+                          COUNT(*) AS encounter_count
+                   FROM encounters e
+                   JOIN top_types t USING (encounter_class)
+                   WHERE e.start >= date_trunc('year', now()) - interval '4 years'
+                   GROUP BY 1, 2 ORDER BY 1, 2"
+      chart_type = "bar", x_column = "year", y_column = "encounter_count",
+      color_column = "encounter_type", barmode = "group"
+
+    Returns the Plotly figure as JSON. If the tool returns an error, read the
+    message, fix the SQL or the column names, and call the tool again.
     """
     query = _validate_read_only_query(sql_query)
     try:
@@ -101,10 +158,9 @@ def create_hospital_chart(
             f"SQL error: {str(e).splitlines()[0]}. Check column names "
             f"against the DATABASE SCHEMA and retry."
         )
-    df = pd.read_sql_query(query, engine)
 
     if df.empty:
-        raise ValueError("The query returned no rows. Check filters and retry.")
+        raise ToolException("The query returned no rows. Check filters and retry.")
 
     available = ", ".join(df.columns)
     for role, col in (("x_column", x_column), ("y_column", y_column),
