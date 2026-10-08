@@ -260,12 +260,10 @@ Hospital_LLM/
 
 ---
 
-## Known limitations
+## Limitations
 
-- **Section-level chunking.** Each document section is one vector. Long sections dilute the embedding and cost more context tokens. Smaller overlapping chunks are the planned fix.
 - **Ingestion is not idempotent.** Vector IDs are random, so re-running `vector_db.py` duplicates entries.
 - **Text-to-SQL is probabilistic.** Complex joins can still go wrong, and there is no automated accuracy measurement yet.
-- **Documents are Ukrainian only.** The agent translates the search query, which can lose precision.
 - **No authentication or rate limiting** in the app itself.
 
 ## Roadmap
