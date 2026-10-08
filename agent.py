@@ -219,7 +219,7 @@ def ask_hospital_agent(question: str) -> dict[str, Any]:
     )
 
 
-def get_final_answer(result: dict[str, Any]) -> str:
+def _final_text(result: dict[str, Any]) -> str:
     """Extract the final assistant text from an agent result."""
     messages = result.get("messages", [])
     for message in reversed(messages):
@@ -237,6 +237,53 @@ def get_final_answer(result: dict[str, Any]) -> str:
                 if answer:
                     return answer
     return ""
+
+def get_sql_queries(result: dict[str, Any]) -> list[dict]:
+    """Every SQL query the agent sent to a tool during the latest question."""
+    messages = result.get("messages", [])
+
+    # only the latest turn (history may contain earlier questions)
+    last_human = max(
+        (i for i, m in enumerate(messages) if getattr(m, "type", None) == "human"),
+        default=-1,
+    )
+    recent = messages[last_human + 1:]
+
+    # which tool calls ended with an error
+    failed = {}
+    for m in recent:
+        if getattr(m, "type", None) == "tool":
+            content = m.content if isinstance(m.content, str) else str(m.content)
+            failed[m.tool_call_id] = (
+                getattr(m, "status", None) == "error"
+                or content.startswith(("SQL error", "Error"))
+            )
+
+    queries = []
+    for m in recent:
+        for call in getattr(m, "tool_calls", None) or []:
+            sql = (call.get("args") or {}).get("sql_query")
+            if sql:
+                queries.append({
+                    "sql": sql.strip(),
+                    "failed": failed.get(call["id"], False),
+                })
+    return queries
+
+
+def _sql_footer(queries: list[dict]) -> str:
+    if not queries:
+        return ""
+    parts = []
+    for i, q in enumerate(queries, 1):
+        label = f"Query {i}" + (" (failed)" if q["failed"] else "")
+        parts.append(f"**{label}**\n```sql\n{q['sql']}\n```")
+    return "\n\n---\n**SQL used:**\n\n" + "\n\n".join(parts)
+
+
+def get_final_answer(result: dict[str, Any]) -> str:
+    """Final answer text plus the SQL the agent wrote."""
+    return _final_text(result) + _sql_footer(get_sql_queries(result))
 
 
 if __name__ == "__main__":
