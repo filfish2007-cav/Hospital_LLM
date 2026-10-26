@@ -286,4 +286,4 @@ Hospital_LLM/
 ## Author
 
 **Filip Rybkin**, built as a hands-on project in LLM agents, RAG and natural-language SQL.
-[LinkedIn](https://www.linkedin.com/in/YOUR-PROFILE) · [GitHub](https://github.com/filfish2007-cav)
+[LinkedIn](www.linkedin.com/in/philip-rybkin-142b03309) · [GitHub](https://github.com/filfish2007-cav)
