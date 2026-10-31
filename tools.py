@@ -281,10 +281,11 @@ def search_hospital_documents(query: str) -> str:
     except Exception as error:
         elapsed = time.monotonic() - started
         logger.exception("Hospital document search failed after %.1fs", elapsed)
-        raise ToolException(
-            "Document search failed or timed out. Check the Pinecone and Gemini "
-            "embedding services, then retry."
-        ) from error
+        return (
+            "DOCUMENT_SEARCH_UNAVAILABLE: The document search service failed or "
+            "timed out. Do not retry this tool for this question; tell the user "
+            "that the hospital documents are temporarily unavailable."
+        )
 
     logger.info(
         "Hospital document search returned %d results in %.1fs",
