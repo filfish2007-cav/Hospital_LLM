@@ -238,7 +238,8 @@ def ask_hospital_agent(question: str) -> dict[str, Any]:
         raise ValueError("Question cannot be empty.")
 
     return hospital_agent.invoke(
-        {"messages": [{"role": "user", "content": question.strip()}]}
+        {"messages": [{"role": "user", "content": question.strip()}]},
+        config={"recursion_limit": 8},
     )
 
 

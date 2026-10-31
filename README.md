@@ -197,6 +197,8 @@ streamlit run app.py
 | `PINECONE_API_KEY` | Vector database |
 | `SUPABASE_DATABASE_URL` | SQLAlchemy URL, e.g. `postgresql+psycopg2://user:pass@host:5432/postgres?sslmode=require` |
 | `GEMINI_MODEL` | *(optional)* override the default chat model |
+| `PINECONE_TIMEOUT_SECONDS` | *(optional)* maximum wait for Pinecone requests (default `15`) |
+| `GEMINI_TIMEOUT_SECONDS` | *(optional)* maximum wait for Gemini embedding requests (default `15`) |
 
 ---
 

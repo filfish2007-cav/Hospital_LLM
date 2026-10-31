@@ -1,4 +1,6 @@
 import re
+import logging
+import time
 from typing import Literal
 from functools import lru_cache
 import os
@@ -16,6 +18,9 @@ from sql_db import engine, get_sql_database
 load_dotenv()
 
 INDEX_NAME = "hospital-docs"
+PINECONE_TIMEOUT_SECONDS = float(os.getenv("PINECONE_TIMEOUT_SECONDS", "15"))
+GEMINI_TIMEOUT_SECONDS = float(os.getenv("GEMINI_TIMEOUT_SECONDS", "15"))
+logger = logging.getLogger(__name__)
 
 
 _READ_ONLY_SQL = re.compile(r"^\s*(SELECT|WITH)\b", re.IGNORECASE)
@@ -224,9 +229,13 @@ def get_vector_store() -> PineconeVectorStore:
     embedding = GoogleGenerativeAIEmbeddings(
         model="gemini-embedding-001",  # must be the same model as when uploading
         api_key=os.getenv("GEMINI_API_KEY"),
+        request_options={"timeout": GEMINI_TIMEOUT_SECONDS},
     )
     pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-    return PineconeVectorStore(index=pc.Index(INDEX_NAME), embedding=embedding)
+    return PineconeVectorStore(
+        index=pc.Index(INDEX_NAME, timeout=PINECONE_TIMEOUT_SECONDS),
+        embedding=embedding,
+    )
 
 
 @tool
@@ -265,7 +274,23 @@ def search_hospital_documents(query: str) -> str:
     :param query: short search phrase in Ukrainian with the key terms
     :return: the most relevant document sections with their sources
     """
-    results = get_vector_store().similarity_search(query, k=5)
+    started = time.monotonic()
+    logger.info("Starting hospital document search (query length=%d)", len(query))
+    try:
+        results = get_vector_store().similarity_search(query, k=5)
+    except Exception as error:
+        elapsed = time.monotonic() - started
+        logger.exception("Hospital document search failed after %.1fs", elapsed)
+        raise ToolException(
+            "Document search failed or timed out. Check the Pinecone and Gemini "
+            "embedding services, then retry."
+        ) from error
+
+    logger.info(
+        "Hospital document search returned %d results in %.1fs",
+        len(results),
+        time.monotonic() - started,
+    )
 
     if not results:
         return "No relevant documents found."
