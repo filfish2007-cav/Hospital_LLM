@@ -80,7 +80,10 @@ if user_text:
 
     try:
         with st.spinner("Thinking..."):
-            result = hospital_agent.invoke({"messages": agent_messages})
+            result = hospital_agent.invoke(
+                {"messages": agent_messages},
+                config={"recursion_limit": 8},
+            )
     except Exception as error:
         st.session_state.messages.pop()   # remove the question that failed
         st.error(f"Something went wrong: {error}")
