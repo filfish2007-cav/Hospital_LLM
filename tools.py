@@ -9,6 +9,7 @@ import pandas as pd
 import plotly.express as px
 from langchain_core.tools import tool
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_google_genai._common import GoogleGenerativeAIError
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone
 from langchain_core.tools import tool, ToolException
@@ -29,6 +30,24 @@ _FORBIDDEN_SQL = re.compile(
     r"REVOKE|REPLACE|MERGE)\b",
     re.IGNORECASE,
 )
+
+
+class _BoundedGoogleGenerativeAIEmbeddings(GoogleGenerativeAIEmbeddings):
+    """Apply timeout and disable legacy google-api-core retries."""
+
+    def embed_query(self, text: str, **kwargs) -> list[float]:
+        try:
+            request = self._prepare_request(text=text, **kwargs)
+            result = self.client.embed_content(
+                request,
+                timeout=GEMINI_TIMEOUT_SECONDS,
+                retry=None,
+            )
+        except Exception as error:
+            raise GoogleGenerativeAIError(
+                f"Error embedding content: {error}"
+            ) from error
+        return list(result.embedding.values)
 
 
 def _validate_read_only_query(sql_query: str) -> str:
@@ -226,10 +245,9 @@ def create_hospital_chart(
 @lru_cache(maxsize=1)
 def get_vector_store() -> PineconeVectorStore:
     """Connect to the Pinecone index with the hospital documents (only once)."""
-    embedding = GoogleGenerativeAIEmbeddings(
+    embedding = _BoundedGoogleGenerativeAIEmbeddings(
         model="gemini-embedding-001",  # must be the same model as when uploading
         api_key=os.getenv("GEMINI_API_KEY"),
-        request_options={"timeout": GEMINI_TIMEOUT_SECONDS},
     )
     pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
     return PineconeVectorStore(
