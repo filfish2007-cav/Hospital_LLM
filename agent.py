@@ -189,6 +189,9 @@ When the user asks for a chart, follow these steps:
   language.
 - If the first result does not contain the answer, search again with different
   wording (at most 3 searches in total).
+- If document search returns DOCUMENT_SEARCH_UNAVAILABLE, do not call it again
+  for the same question. Explain that the hospital documents are temporarily
+  unavailable.
 - Answer only from the returned text. If the documents do not contain the
   answer, say so honestly; do not invent anything.
 - Briefly mention the source (document and section) of the answer.
