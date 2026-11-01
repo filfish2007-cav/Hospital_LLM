@@ -225,7 +225,7 @@ def create_hospital_chart(
 @lru_cache(maxsize=1)
 def get_vector_store() -> PineconeVectorStore:
     """Connect to the Pinecone index with the hospital documents (only once)."""
-    embedding = _BoundedGoogleGenerativeAIEmbeddings(
+    embedding = GoogleGenerativeAIEmbeddings(
         model="gemini-embedding-001",  # must be the same model as when uploading
         api_key=os.getenv("GEMINI_API_KEY"),
     )
