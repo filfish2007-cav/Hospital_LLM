@@ -221,7 +221,12 @@ def build_schema_text() -> str:
 def _create_agent():
     """Create the Gemini agent with the shared hospital tools."""
     model_name = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
-    model = ChatGoogleGenerativeAI(model=model_name, temperature=0)
+    model = ChatGoogleGenerativeAI(
+        model=model_name,
+        temperature=0,
+        timeout=30,
+        max_retries=2,
+    )
     return create_agent(
         model=model,
         tools=HOSPITAL_TOOLS,
