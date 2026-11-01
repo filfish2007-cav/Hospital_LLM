@@ -302,7 +302,15 @@ def search_hospital_documents(query: str) -> str:
         )
         parts.append(f"{source}\n{doc.page_content}")
 
-    return "\n\n---\n\n".join(parts)
+    reminder = (
+        "NOTE FOR THE ASSISTANT: the sections below are in Ukrainian. "
+        "Write your answer in the language of the user's LATEST message "
+        "(for example English), not in Ukrainian. Translate or paraphrase, "
+        "and keep only system and section names in Ukrainian, in quotes. "
+        "Mention the document and section as the source.\n\n"
+    )
+
+    return reminder + "\n\n---\n\n".join(parts)
 
 
 HOSPITAL_TOOLS = [
